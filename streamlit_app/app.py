@@ -1,10 +1,11 @@
 import streamlit as st
 import requests
+import os
 from pathlib import Path
 from PIL import Image
 
 FIREBASE_API_KEY = "AIzaSyAHeLl9iaCku3LpBr0L-6Q3vMHQevgIw8c"
-API_URL = "http://localhost:8000"
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 image_path = Path(__file__).resolve().parent.parent / "images" / "EventFlow.png"
 
 # Session state
