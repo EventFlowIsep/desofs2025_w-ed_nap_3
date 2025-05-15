@@ -1,71 +1,33 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
-from jose import jwt
-from pydantic import BaseModel
-import bcrypt
-import time
-
-from .db import SessionLocal, init_db
-from .models import User
-
-SECRET_KEY = "eventflow-secret"
-ALGORITHM = "HS256"
+from fastapi.staticfiles import StaticFiles
+from .firebase_auth import verify_firebase_token
 
 app = FastAPI()
-init_db()
 
+# Allow Streamlit frontend to access the backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Adjust in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# Serve static HTML files like google_login.html at http://localhost:8000/auth/google_login.html
+app.mount("/auth", StaticFiles(directory="public"), name="auth")
 
-class UserRegister(BaseModel):
-    email: str
-    password: str
-
-class UserLogin(BaseModel):
-    email: str
-    password: str
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-@app.post("/register")
-def register(user: UserRegister, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.email == user.email).first():
-        raise HTTPException(status_code=400, detail="User already exists")
-    hashed_pw = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt())
-    db_user = User(email=user.email, password_hash=hashed_pw.decode())
-    db.add(db_user)
-    db.commit()
-    return {"msg": "User registered successfully"}
-
-@app.post("/login")
-def login(user: UserLogin, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.email == user.email).first()
-    if not db_user or not bcrypt.checkpw(user.password.encode(), db_user.password_hash.encode()):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = jwt.encode({"sub": user.email, "exp": time.time() + 3600}, SECRET_KEY, algorithm=ALGORITHM)
-    return {"access_token": token, "token_type": "bearer"}
 
 @app.get("/events")
-def get_events(token: str = Depends(oauth2_scheme)):
-    try:
-        jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
+def get_events(request: Request):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="No token provided")
+
+    token = auth_header.split(" ")[1]
+    user = verify_firebase_token(token)
+
     return [
-        {"name": "Cybersecurity Conference", "date": "2025-07-12"},
-        {"name": "Green Tech Expo", "date": "2025-08-05"},
+        {"name": "Cybersecurity Conference", "date": "2025-07-12", "user": user["email"]},
+        {"name": "Green Tech Expo", "date": "2025-08-05", "user": user["email"]},
     ]
