@@ -2,10 +2,14 @@ import streamlit as st
 import requests
 from pathlib import Path
 from PIL import Image
+import streamlit.components.v1 as components
 
 FIREBASE_API_KEY = "AIzaSyAHeLl9iaCku3LpBr0L-6Q3vMHQevgIw8c"
 API_URL = "http://localhost:8000"
 image_path = Path(__file__).resolve().parent.parent / "images" / "EventFlow.png"
+
+if "trigger_google_redirect" not in st.session_state:
+    st.session_state.trigger_google_redirect = False
 
 # Session state
 if "token" not in st.session_state:
@@ -20,6 +24,7 @@ token_param = st.query_params.get("token")
 if token_param and not st.session_state.token:
     st.session_state.token = token_param
     st.session_state.page = "main"
+    st.query_params.clear()
     st.rerun()
 
 # Firebase functions
@@ -57,6 +62,7 @@ if st.session_state.page == "main":
     if st.button("Log out"):
         st.session_state.token = None
         st.session_state.page = "auth"
+        st.query_params.clear()
         st.rerun()
 
 # Auth page
