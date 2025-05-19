@@ -15,6 +15,8 @@ if "trigger_google_redirect" not in st.session_state:
     st.session_state.trigger_google_redirect = False
 if "token" not in st.session_state:
     st.session_state.token = None
+if "user_role" not in st.session_state:
+    st.session_state.user_role = ""
 if "page" not in st.session_state:
     st.session_state.page = "auth"
 if "auth_mode" not in st.session_state:
@@ -36,6 +38,13 @@ def firebase_login(email, password):
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
     return requests.post(url, json={"email": email, "password": password, "returnSecureToken": True})
 
+def get_user_role(token):
+    headers = {"Authorization": f"Bearer {token}"}
+    res = requests.get(f"{API_URL}/verify-token", headers=headers)
+    if res.status_code == 200:
+        return res.json().get("role", "client")
+    return "client"
+
 # Redirect after login
 if st.session_state.page == "main":
     st.switch_page("pages/view_events.py")
@@ -53,7 +62,9 @@ elif st.session_state.page == "auth":
         if st.sidebar.button("Login"):
             res = firebase_login(st.session_state.log_email, st.session_state.log_pass)
             if res.status_code == 200:
-                st.session_state.token = res.json()["idToken"]
+                token = res.json()["idToken"]
+                st.session_state.token = token
+                st.session_state.user_role = get_user_role(token)
                 st.success("Login successful!")
                 st.session_state.page = "main"
                 st.rerun()
