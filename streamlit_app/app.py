@@ -4,15 +4,15 @@ import os
 from pathlib import Path
 from PIL import Image
 import streamlit.components.v1 as components
+import streamlit.web.cli as stcli
+import sys
 
 FIREBASE_API_KEY = "AIzaSyAHeLl9iaCku3LpBr0L-6Q3vMHQevgIw8c"
 API_URL = os.getenv("API_URL", "http://localhost:8000")
-image_path = Path(__file__).resolve().parent.parent / "images" / "EventFlow.png"
 
+# Session state setup
 if "trigger_google_redirect" not in st.session_state:
     st.session_state.trigger_google_redirect = False
-
-# Session state
 if "token" not in st.session_state:
     st.session_state.token = None
 if "page" not in st.session_state:
@@ -28,7 +28,6 @@ if token_param and not st.session_state.token:
     st.query_params.clear()
     st.rerun()
 
-# Firebase functions
 def firebase_register(email, password):
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={FIREBASE_API_KEY}"
     return requests.post(url, json={"email": email, "password": password, "returnSecureToken": True})
@@ -37,44 +36,16 @@ def firebase_login(email, password):
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
     return requests.post(url, json={"email": email, "password": password, "returnSecureToken": True})
 
-# Main content
+# Redirect after login
 if st.session_state.page == "main":
-    st.title("🎉 EventFlow")
-    st.subheader("Empowering Events, Enabling Connections")
+    st.switch_page("pages/view_events.py")
 
-    try:
-        image = Image.open(image_path)
-        st.image(image, use_container_width=True, caption="Your event journey starts here.")
-    except FileNotFoundError:
-        st.error("Banner image not found.")
-
-    st.markdown("---")
-    headers = {"Authorization": f"Bearer {st.session_state.token}"}
-    try:
-        res = requests.get(f"{API_URL}/events", headers=headers)
-        if res.status_code == 200:
-            for ev in res.json():
-                st.markdown(f"📅 **{ev['name']}** — {ev['date']} (User: {ev['user']})")
-        else:
-            st.error("Failed to load events.")
-    except Exception as e:
-        st.error(f"Backend error: {e}")
-
-    if st.button("Log out"):
-        st.session_state.token = None
-        st.session_state.page = "auth"
-        st.query_params.clear()
-        st.rerun()
-
-# Auth page
 elif st.session_state.page == "auth":
+    st.set_page_config(page_title="Login | EventFlow", page_icon="🔐")
     st.markdown("<h1 style='text-align: center;'>👋 Welcome to EventFlow 👋</h1>", unsafe_allow_html=True)
 
-    # Sidebar login layout
     st.sidebar.title("🔐 Login")
-    option = st.sidebar.selectbox(
-        "", ["Login method", "Email", "Google"], index=0
-    )
+    option = st.sidebar.selectbox("Login method", ["Email", "Google"], index=0)
 
     if option == "Email":
         st.sidebar.text_input("Email", key="log_email")
@@ -98,8 +69,8 @@ elif st.session_state.page == "auth":
         st.session_state.page = "register"
         st.rerun()
 
-# Registration page
 elif st.session_state.page == "register":
+    st.set_page_config(page_title="Register | EventFlow", page_icon="📝")
     st.title("📝 Create a New Account")
     email = st.text_input("Email", key="reg_email")
     password = st.text_input("Password", type="password", key="reg_pass")
