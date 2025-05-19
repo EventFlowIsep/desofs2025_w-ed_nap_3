@@ -1,0 +1,5 @@
+{
+  "ok": false,
+  "error": "Could not detect supported target files in C:\\Users\\rafa\\Desktop\\ISEP\\DESOFS\\Projeto\\desofs2025_w-ed_nap_3\\Security\\Analysis.\nPlease see our documentation for supported languages and target files: https://snyk.co/udVgQ and make sure you are in the right directory.",
+  "path": "C:\\Users\\rafa\\Desktop\\ISEP\\DESOFS\\Projeto\\desofs2025_w-ed_nap_3\\Security\\Analysis"
+}

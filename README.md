@@ -63,3 +63,19 @@ IAST(Interactive Application Security Testing) - Optional (with automated tests)
 Example Vulnerability Documentation
 
 Vulnerability: Use of hardcoded password in login.py (line 14) Phase Detected: Development Type of Analysis: SAST Tool: Semgrep (Docker) Severity: High Mitigation: Replace hardcoded password with secure credential storage (e.g., environment variables or a secrets vault).
+
+uvicorn app.main:app --reload
+streamlit run streamlit_app/app.py
+streamlit run streamlit_app/admin.py
+python app/assign_role.py --email adminuser@gmail.com --role admin
+
+Correr os SAST E SCA
+pip install bandit
+pip install pip-audit
+snyk auth
+Docker tem de estar aberto
+chmod +x run_sast.sh run_sca.sh
+./run_sast.ps1 && ./run_sca.ps1
+.\Security\Analysis\run_sast.ps1
+.\Security\Analysis\run_sca.ps1
+Necessário ter o git instalado e correr sh Security/Analysis/run_sast.sh
