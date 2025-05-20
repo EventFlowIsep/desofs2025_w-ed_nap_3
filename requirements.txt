@@ -5,7 +5,7 @@ pandas
 matplotlib
 fastapi
 uvicorn
-couldinary
-bandit 
+cloudinary
+bandit
 pip-audit
 python-dotenv
