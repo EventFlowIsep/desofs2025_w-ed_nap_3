@@ -39,3 +39,9 @@ jobs:
       run: |
         pip install pip-audit
         pip-audit -o audit-results.json
+
+    - name: Upload audit report
+      uses: actions/upload-artifact@v3
+      with:
+        name: pip-audit-report
+        path: audit-results.json
