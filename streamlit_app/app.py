@@ -16,9 +16,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+load_dotenv()
 FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
 API_URL = os.getenv("API_URL", "http://localhost:8000")
-
 
 # Session state setup
 if "trigger_google_redirect" not in st.session_state:
@@ -32,10 +32,18 @@ if "page" not in st.session_state:
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = ""
 
+def get_user_role(token):
+    headers = {"Authorization": f"Bearer {token}"}
+    res = requests.get(f"{API_URL}/verify-token", headers=headers)
+    if res.status_code == 200:
+        return res.json().get("role", "client")
+    return "client"
+
 # Auto-login from Google redirect
 token_param = st.query_params.get("token")
 if token_param and not st.session_state.token:
     st.session_state.token = token_param
+    st.session_state.user_role = get_user_role(token_param)
     st.session_state.page = "main"
     st.query_params.clear()
     st.rerun()
@@ -48,39 +56,63 @@ def firebase_login(email, password):
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
     return requests.post(url, json={"email": email, "password": password, "returnSecureToken": True})
 
-def get_user_role(token):
-    headers = {"Authorization": f"Bearer {token}"}
-    res = requests.get(f"{API_URL}/verify-token", headers=headers)
-    if res.status_code == 200:
-        return res.json().get("role", "client")
-    return "client"
-
 # Redirect after login
 if st.session_state.page == "main":
     st.sidebar.title("📂 Menu")
+    if st.session_state.user_role:
+        st.sidebar.markdown(f"🧑 Logged in as: **{st.session_state.user_role.capitalize()}**")
+    
+    st.write("DEBUG – role:", st.session_state.user_role)
 
     if "token" in st.session_state and st.session_state.token:
-        selected = st.sidebar.selectbox("Choose an action", [
-            "View Events", "Create Event", "Cancel Event", "Manage Users"
-        ])
+    # 📋 Menu based on role
+        menu_options = ["View Events"]  # all have access
 
+        if st.session_state.user_role in ["admin", "event_manager"]:
+            menu_options.append("Create Event")
+            menu_options.append("Cancel Event")
+
+        if st.session_state.user_role == "admin":
+            menu_options.append("Manage Users")
+
+        selected = st.sidebar.selectbox("Choose an action", menu_options)
+
+    # 🔁 Routing
         if selected == "View Events":
             view_events.show()
 
         elif selected == "Create Event":
-            create_event.show()
+            if st.session_state.user_role in ["admin", "event_manager"]:
+                create_event.show()
+            else:
+                st.warning("❌ You do not have permission to create events.")
 
         elif selected == "Cancel Event":
-            cancel_event.show()
+            if st.session_state.user_role in ["admin", "event_manager"]:
+                cancel_event.show()
+            else:
+                st.warning("❌ You do not have permission to cancel events.")
 
         elif selected == "Manage Users":
-            users_and_events.show()
+            if st.session_state.user_role == "admin":
+                users_and_events.show()
+            else:
+                st.warning("❌ You do not have permission to manage users.")
+
     else:
         st.sidebar.warning("🔐 Please log in to access features.")
         st.write("Welcome to EventFlow. Log in to get started.")
+    
+    st.sidebar.markdown("---")
+    if st.sidebar.button("🚪 Log out"):
+        st.session_state.token = None
+        st.session_state.user_role = None
+        st.session_state.page = "auth"
+        st.query_params.clear()
+        st.rerun()
 
 elif st.session_state.page == "auth":
-    st.title("Login 🔐 | EventFlow")
+    st.title("Login 🔐")
     st.markdown("<h1 style='text-align: center;'>👋 Welcome to EventFlow 👋</h1>", unsafe_allow_html=True)
 
     st.sidebar.title("🔐 Login")
@@ -124,7 +156,7 @@ elif st.session_state.page == "auth":
         st.rerun()
 
 elif st.session_state.page == "register":
-    st.title("Register 📝 | EventFlow")
+    st.title("Register 📝")
     st.title("📝 Create a New Account")
     email = st.text_input("Email", key="reg_email")
     password = st.text_input("Password", type="password", key="reg_pass")

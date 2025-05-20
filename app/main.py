@@ -49,7 +49,7 @@ def verify_token(request: Request):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 @app.get("/events")
-def get_events():
+def get_events(user=Depends(verify_token)):
     events_ref = db.collection("events")
     docs = events_ref.stream()
     events = []
@@ -85,6 +85,8 @@ async def create_event(req: Request, user=Depends(verify_token)):
 
 @app.post("/events/{event_id}/cancel")
 def cancel_event(event_id: str, user=Depends(verify_token)):
+    if user["role"] not in ["admin", "event_manager"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
     doc_ref = db.collection("events").document(event_id)
     if not doc_ref.get().exists:
         raise HTTPException(status_code=404, detail="Event not found")

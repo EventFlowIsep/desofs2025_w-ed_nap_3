@@ -5,6 +5,15 @@ import firebase_admin
 import pandas as pd
 import datetime
 
+ROLE_CHOICES = {
+    "Client": "client",
+    "Admin": "admin",
+    "Event Manager": "event_manager",
+    "Moderator": "moderator",
+    "Supplier": "supplier",
+    "Partner": "partner"
+}
+
 # Initialize Firebase Admin
 if not firebase_admin._apps:
     cred = credentials.Certificate("app/firebase_key.json")
@@ -29,10 +38,13 @@ def firebase_admin_login(email, password):
     return res
 
 # Verify if token is from admin
+AUTHORIZED_ADMINS = ["adminuser@gmail.com"]
 def verify_admin_token(token):
     try:
         decoded = auth.verify_id_token(token)
-        return decoded.get("role") == "admin"
+        is_admin = decoded.get("role") == "admin"
+        is_whitelisted = decoded.get("email", "").lower() in AUTHORIZED_ADMINS
+        return is_admin and is_whitelisted
     except Exception:
         return False
 
@@ -61,7 +73,12 @@ def list_users_with_roles():
     data = []
     for user in users:
         claims = user.custom_claims or {}
-        data.append({"Email": user.email, "Role": claims.get("role", "client")})
+        data.append({
+            "UID": user.id,  
+            "Email": user.email, 
+            "Role": claims.get("role", "client"),
+            "Last Sign-In": user.user_metadata.last_sign_in_timestamp,   
+        })
     return pd.DataFrame(data)
 
 # Log changes
@@ -111,6 +128,7 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
         if st.button("Assign Role"):
             result = assign_user_role(user_email, role)
             st.success(result)
+            st.info("⚠️ Ask the user to log in again to refresh their role.")
 
     with st.expander("📋 List All Users and Roles"):
         df = list_users_with_roles()

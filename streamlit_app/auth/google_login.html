@@ -65,13 +65,15 @@
 
     function googleLogin() {
       auth.signInWithPopup(provider)
-        .then((result) => result.user.getIdToken())
-        .then((idToken) => {
-          window.location.href = `http://localhost:8501?token=${idToken}`;
-        })
-        .catch((error) => {
-          alert("❌ Login failed: " + error.message);
-        });
+      .then((result) => {
+        return result.user.getIdToken(true);  // force refresh with custom claims
+      })
+      .then((idToken) => {
+        window.location.href = `http://localhost:8501?token=${idToken}`;
+      })
+      .catch((error) => {
+        alert("❌ Login failed: " + error.message);
+      });
     }
   </script>
 </body>
