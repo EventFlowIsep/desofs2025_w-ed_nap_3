@@ -1,2 +1,3 @@
 app/firebase_key.json
 app/__pycache__
+.env

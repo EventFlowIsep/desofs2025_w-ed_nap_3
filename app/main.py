@@ -61,6 +61,8 @@ def get_events():
 
 @app.post("/events/create")
 async def create_event(req: Request, user=Depends(verify_token)):
+    if user["role"] not in ["admin", "event_manager"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
     body = await req.json()
     title = body.get("title")
     date = body.get("date")

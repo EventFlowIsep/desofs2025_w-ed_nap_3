@@ -7,6 +7,7 @@ import streamlit.components.v1 as components
 import streamlit.web.cli as stcli
 import sys
 from modules import create_event, cancel_events, users_and_events, view_events
+from dotenv import load_dotenv
 
 st.set_page_config(
     page_title="EventFlow",
@@ -15,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-FIREBASE_API_KEY = "AIzaSyAHeLl9iaCku3LpBr0L-6Q3vMHQevgIw8c"
+FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 
