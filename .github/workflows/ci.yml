@@ -38,4 +38,4 @@ jobs:
       continue-on-error: true
       run: |
         pip install pip-audit
-        pip-audit
+        pip-audit -o audit-results.json
