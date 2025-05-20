@@ -32,9 +32,11 @@ if "page" not in st.session_state:
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = ""
 
+DEFAULT_TIMEOUT = 10
+
 def get_user_role(token):
     headers = {"Authorization": f"Bearer {token}"}
-    res = requests.get(f"{API_URL}/verify-token", headers=headers)
+    res = requests.get(f"{API_URL}/verify-token", headers=headers, timeout=DEFAULT_TIMEOUT)
     if res.status_code == 200:
         return res.json().get("role", "client")
     return "client"
@@ -50,11 +52,11 @@ if token_param and not st.session_state.token:
 
 def firebase_register(email, password):
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={FIREBASE_API_KEY}"
-    return requests.post(url, json={"email": email, "password": password, "returnSecureToken": True})
+    return requests.post(url, json={"email": email, "password": password, "returnSecureToken": True}, timeout=DEFAULT_TIMEOUT)
 
 def firebase_login(email, password):
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
-    return requests.post(url, json={"email": email, "password": password, "returnSecureToken": True})
+    return requests.post(url, json={"email": email, "password": password, "returnSecureToken": True}, timeout=DEFAULT_TIMEOUT)
 
 # Redirect after login
 if st.session_state.page == "main":

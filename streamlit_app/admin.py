@@ -31,10 +31,11 @@ if "admin_verified" not in st.session_state:
 if "admin_page" not in st.session_state:
     st.session_state.admin_page = "login"
 
+DEFAULT_TIMEOUT = 10
 # Firebase login (email/password)
 def firebase_admin_login(email, password):
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
-    res = requests.post(url, json={"email": email, "password": password, "returnSecureToken": True})
+    res = requests.post(url, json={"email": email, "password": password, "returnSecureToken": True}, timeout=DEFAULT_TIMEOUT)
     return res
 
 # Verify if token is from admin
