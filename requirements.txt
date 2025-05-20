@@ -5,3 +5,6 @@ pandas
 matplotlib
 fastapi
 uvicorn
+couldinary
+bandit 
+pip-audit

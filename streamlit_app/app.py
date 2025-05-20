@@ -6,9 +6,18 @@ from PIL import Image
 import streamlit.components.v1 as components
 import streamlit.web.cli as stcli
 import sys
+from modules import create_event, cancel_events, users_and_events, view_events
+
+st.set_page_config(
+    page_title="EventFlow",
+    page_icon="🎉",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 FIREBASE_API_KEY = "AIzaSyAHeLl9iaCku3LpBr0L-6Q3vMHQevgIw8c"
 API_URL = os.getenv("API_URL", "http://localhost:8000")
+
 
 # Session state setup
 if "trigger_google_redirect" not in st.session_state:
@@ -47,10 +56,30 @@ def get_user_role(token):
 
 # Redirect after login
 if st.session_state.page == "main":
-    st.switch_page("pages/view_events.py")
+    st.sidebar.title("📂 Menu")
+
+    if "token" in st.session_state and st.session_state.token:
+        selected = st.sidebar.selectbox("Choose an action", [
+            "View Events", "Create Event", "Cancel Event", "Manage Users"
+        ])
+
+        if selected == "View Events":
+            view_events.show()
+
+        elif selected == "Create Event":
+            create_event.show()
+
+        elif selected == "Cancel Event":
+            cancel_event.show()
+
+        elif selected == "Manage Users":
+            users_and_events.show()
+    else:
+        st.sidebar.warning("🔐 Please log in to access features.")
+        st.write("Welcome to EventFlow. Log in to get started.")
 
 elif st.session_state.page == "auth":
-    st.set_page_config(page_title="Login | EventFlow", page_icon="🔐")
+    st.title("Login 🔐 | EventFlow")
     st.markdown("<h1 style='text-align: center;'>👋 Welcome to EventFlow 👋</h1>", unsafe_allow_html=True)
 
     st.sidebar.title("🔐 Login")
@@ -72,7 +101,20 @@ elif st.session_state.page == "auth":
                 st.sidebar.error("Login failed: " + res.json().get("error", {}).get("message", "Unknown error"))
 
     elif option == "Google":
-        st.sidebar.markdown("[🔓 Sign in with Google](http://localhost:8000/auth/google_login.html)", unsafe_allow_html=True)
+        if st.sidebar.button("🔓 Sign in with Google"):
+            st.session_state.trigger_google_redirect = True
+            st.rerun()
+
+        if st.session_state.trigger_google_redirect:
+            st.markdown(
+                """
+                    <meta http-equiv="refresh" content="0; url='http://localhost:8000/auth/google_login.html'" />
+                """,
+                unsafe_allow_html=True
+            )
+
+            st.session_state.trigger_google_redirect = False
+
         st.sidebar.info("You will be redirected and logged in automatically.")
 
     st.sidebar.markdown("---")
@@ -81,7 +123,7 @@ elif st.session_state.page == "auth":
         st.rerun()
 
 elif st.session_state.page == "register":
-    st.set_page_config(page_title="Register | EventFlow", page_icon="📝")
+    st.title("Register 📝 | EventFlow")
     st.title("📝 Create a New Account")
     email = st.text_input("Email", key="reg_email")
     password = st.text_input("Password", type="password", key="reg_pass")

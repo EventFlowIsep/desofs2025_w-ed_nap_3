@@ -5,6 +5,8 @@ from google.cloud import firestore
 import firebase_admin
 import os
 import datetime
+from fastapi.responses import FileResponse
+
 
 # Setup environment variable to load credentials
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "app/firebase_key.json"
@@ -17,6 +19,10 @@ if not firebase_admin._apps:
 db = firestore.Client()
 
 app = FastAPI()
+
+@app.get("/auth/google_login.html")
+def serve_google_login():
+    return FileResponse("streamlit_app/auth/google_login.html", media_type="text/html")
 
 app.add_middleware(
     CORSMiddleware,
