@@ -58,3 +58,14 @@ jobs:
 
       - name: Run Docker container
         run: docker run -d -p 8501:8501 streamlit-app-staging
+
+  dast-test:
+    name: 🔍 Dynamic Analysis with OWASP ZAP
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+
+    steps:
+      - name: Run ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.7.0
+        with:
+          target: 'http://localhost:8501'
