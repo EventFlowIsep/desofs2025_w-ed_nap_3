@@ -9,3 +9,4 @@ cloudinary
 bandit
 pip-audit
 python-dotenv
+setuptools==74.1.1
