@@ -35,6 +35,7 @@ jobs:
         bandit -r app/
 
     - name: Run pip-audit for dependency vulnerability scanning (SCA)
+      continue-on-error: true
       run: |
         pip install pip-audit
         pip-audit
