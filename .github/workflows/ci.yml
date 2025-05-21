@@ -66,6 +66,6 @@ jobs:
 
     steps:
       - name: Run ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.7.0
+        uses: zaproxy/action-baseline@v0.11.0
         with:
           target: 'http://localhost:8501'
