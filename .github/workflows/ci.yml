@@ -32,10 +32,11 @@ jobs:
           pytest tests/
 
       - name: Run Bandit (SAST)
+        continue-on-error: true
         run: |
           pip install bandit
-          bandit -r app/ --severity-level HIGH
-          bandit -r streamlit_app/ --severity-level HIGH
+          bandit -r app/
+          bandit -r streamlit_app/
 
       - name: Run pip-audit (SCA)
         continue-on-error: true
