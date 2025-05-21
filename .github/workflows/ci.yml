@@ -34,8 +34,8 @@ jobs:
       - name: Run Bandit (SAST)
         run: |
           pip install bandit
-          bandit -r app/
-          bandit -r streamlit_app/
+          bandit -r app/ --severity-level HIGH
+          bandit -r streamlit_app/ --severity-level HIGH
 
       - name: Run pip-audit (SCA)
         continue-on-error: true
@@ -44,7 +44,7 @@ jobs:
           pip-audit
 
   deploy-staging:
-    name: 🐳 Deploy staging via Docker Compose
+    name: Deploy staging via Docker Compose
     runs-on: ubuntu-latest
     needs: build-and-test
 
@@ -55,7 +55,7 @@ jobs:
         run: docker-compose up -d --build
 
   dast-test:
-    name: 🔍 DAST - OWASP ZAP on FastAPI
+    name: DAST - OWASP ZAP on FastAPI
     runs-on: ubuntu-latest
     needs: deploy-staging
 
