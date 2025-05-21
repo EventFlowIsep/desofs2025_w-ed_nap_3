@@ -74,7 +74,7 @@ jobs:
         run: docker build -f Dockerfile.fastapi -t fastapi-staging .
 
       - name: Run FastAPI container
-        run: docker run -d -p 8000:8000 fastapi-staging
+        run: docker run -d --network=host fastapi-staging
 
       - name: Wait for FastAPI
         run: sleep 10
