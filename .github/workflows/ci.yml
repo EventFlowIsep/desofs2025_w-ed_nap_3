@@ -58,9 +58,22 @@ jobs:
   dast-test:
     name: DAST - OWASP ZAP on FastAPI
     runs-on: ubuntu-latest
-    needs: deploy-staging
+    services:
+      fastapi:
+        image: fastapi-staging
+        ports:
+          - 8000:8000
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build FastAPI Docker image
+        run: docker build -f Dockerfile.fastapi -t fastapi-staging .
+
+      - name: Wait for FastAPI
+        run: sleep 10
+
       - name: Run ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.11.0
         with:
