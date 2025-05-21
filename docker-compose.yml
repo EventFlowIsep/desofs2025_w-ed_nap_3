@@ -2,6 +2,15 @@ version: "3.9"
 
 services:
   streamlit:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8501:8501"
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.fastapi
+    ports:
+      - "8000:8000"
