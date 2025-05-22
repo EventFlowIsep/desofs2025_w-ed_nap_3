@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import os
+from datetime import datetime, date
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
@@ -13,6 +14,12 @@ def show():
 
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
 
+    # 🔍 Filter section (by start date only)
+    with st.expander("🔍 Filter Events"):
+        start_date = st.date_input("Show events starting from:", value=date.today(), key="start_date_filter")
+        exclude_cancelled = st.checkbox("Exclude cancelled events", value=True, key="cancelled_filter")
+        filter_clicked = st.button("Apply Filter", key="filter_button")
+
     try:
         res = requests.get(f"{API_URL}/events", headers=headers)
         if res.status_code == 200:
@@ -20,6 +27,12 @@ def show():
             if not events:
                 st.info("No events available yet.")
             else:
+                if filter_clicked:
+                    events = [e for e in events if "date" in e and e["date"] >= start_date.strftime("%Y-%m-%d")]
+                    if exclude_cancelled:
+                        events = [e for e in events if not e.get("cancelled", False)]
+                    events.sort(key=lambda x: x["date"])
+
                 for ev in events:
                     st.markdown("---")
                     st.subheader(ev.get("title", "Untitled Event"))
@@ -27,7 +40,6 @@ def show():
                     st.write(f"📝 Description: {ev.get('description', 'No description provided.')}")
                     st.write(f"👤 Created by: {ev.get('created_by', 'Unknown')}")
 
-                    # Optional image display
                     image_url = ev.get("image_url")
                     if image_url:
                         st.image(image_url, caption="Event image", use_container_width=True)
@@ -43,7 +55,6 @@ def show():
                     else:
                         st.write("No comments yet.")
 
-                    # Add comment form
                     with st.form(f"comment_form_{ev['id']}"):
                         comment_text = st.text_input("Write a comment:", key=f"comment_{ev['id']}")
                         author = st.text_input("Your name (optional):", key=f"author_{ev['id']}")
@@ -60,6 +71,27 @@ def show():
                                 st.rerun()
                             else:
                                 st.error("Failed to post comment.")
+
+                    # ✏️ Edit event section for authorized users
+                    if st.session_state.get("user_role") in ["Admin", "Event_manager"]:
+                        with st.expander("✏️ Edit Event"):
+                            new_title = st.text_input("Title", value=ev.get("title", ""), key=f"title_{ev['id']}")
+                            new_date = st.date_input("Date", value=datetime.strptime(ev.get("date"), "%Y-%m-%d"), key=f"date_{ev['id']}")
+                            new_desc = st.text_area("Description", value=ev.get("description", ""), key=f"desc_{ev['id']}")
+                            new_image = st.text_input("Image URL", value=ev.get("image_url", ""), key=f"img_{ev['id']}")
+                            if st.button("Save Changes", key=f"save_{ev['id']}"):
+                                payload = {
+                                    "title": new_title,
+                                    "date": new_date.strftime("%Y-%m-%d"),
+                                    "description": new_desc,
+                                    "image_url": new_image
+                                }
+                                update_res = requests.put(f"{API_URL}/events/{ev['id']}", json=payload, headers=headers)
+                                if update_res.status_code == 200:
+                                    st.success("Event updated successfully!")
+                                    st.rerun()
+                                else:
+                                    st.error("Failed to update event.")
         else:
             st.error("Failed to load events.")
     except Exception as e:

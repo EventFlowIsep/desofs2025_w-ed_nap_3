@@ -13,5 +13,5 @@ def set_user_role(uid: str, role: str):
 # Exemplo de uso
 if __name__ == "__main__":
     uid = input("Enter Firebase UID: ")
-    role = input("Enter role (admin, event_manager, client): ")
+    role = input("Enter role (Admin, Event_manager, client): ")
     set_user_role(uid, role)

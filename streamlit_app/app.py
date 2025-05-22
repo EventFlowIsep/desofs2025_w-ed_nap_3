@@ -6,7 +6,7 @@ from PIL import Image
 import streamlit.components.v1 as components
 import streamlit.web.cli as stcli
 import sys
-from modules import create_event, cancel_events, users_and_events, view_events
+from modules import create_event, cancel_events, view_events
 from dotenv import load_dotenv
 
 st.set_page_config(
@@ -64,17 +64,15 @@ if st.session_state.page == "main":
     if st.session_state.user_role:
         st.sidebar.markdown(f"🧑 Logged in as: **{st.session_state.user_role.capitalize()}**")
     
-    st.write("DEBUG – role:", st.session_state.user_role)
-
     if "token" in st.session_state and st.session_state.token:
     # 📋 Menu based on role
         menu_options = ["View Events"]  # all have access
 
-        if st.session_state.user_role in ["admin", "event_manager"]:
+        if st.session_state.user_role in ["Admin", "Event_manager"]:
             menu_options.append("Create Event")
             menu_options.append("Cancel Event")
 
-        if st.session_state.user_role == "admin":
+        if st.session_state.user_role == "Admin":
             menu_options.append("Manage Users")
 
         selected = st.sidebar.selectbox("Choose an action", menu_options)
@@ -84,22 +82,16 @@ if st.session_state.page == "main":
             view_events.show()
 
         elif selected == "Create Event":
-            if st.session_state.user_role in ["admin", "event_manager"]:
+            if st.session_state.user_role in ["Admin", "Event_manager"]:
                 create_event.show()
             else:
                 st.warning("❌ You do not have permission to create events.")
 
         elif selected == "Cancel Event":
-            if st.session_state.user_role in ["admin", "event_manager"]:
-                cancel_event.show()
+            if st.session_state.user_role in ["Admin", "Event_manager"]:
+                cancel_events.show()
             else:
                 st.warning("❌ You do not have permission to cancel events.")
-
-        elif selected == "Manage Users":
-            if st.session_state.user_role == "admin":
-                users_and_events.show()
-            else:
-                st.warning("❌ You do not have permission to manage users.")
 
     else:
         st.sidebar.warning("🔐 Please log in to access features.")

@@ -22,7 +22,7 @@ def show():
         except:
             st.session_state.user_role = "client"
 
-    if st.session_state.user_role not in ["admin", "event_manager"]:
+    if st.session_state.user_role not in ["Admin", "Event_manager"]:
         st.warning("❌ You do not have permission to access this page.")
         return
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from firebase_admin import credentials, auth, initialize_app
 from google.cloud import firestore
@@ -6,7 +6,8 @@ import firebase_admin
 import os
 import datetime
 from fastapi.responses import FileResponse
-
+from pydantic import BaseModel
+from typing import Optional
 
 # Setup environment variable to load credentials
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "app/firebase_key.json"
@@ -43,7 +44,7 @@ def verify_token(request: Request):
         return {
             "uid": decoded.get("uid"),
             "email": decoded.get("email"),
-            "role": decoded.get("role", "client")
+            "role": decoded.get("role", "Client")
         }
     except:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -61,7 +62,7 @@ def get_events(user=Depends(verify_token)):
 
 @app.post("/events/create")
 async def create_event(req: Request, user=Depends(verify_token)):
-    if user["role"] not in ["admin", "event_manager"]:
+    if user["role"] not in ["Admin", "Event_manager"]:
         raise HTTPException(status_code=403, detail="Forbidden")
     body = await req.json()
     title = body.get("title")
@@ -85,7 +86,7 @@ async def create_event(req: Request, user=Depends(verify_token)):
 
 @app.post("/events/{event_id}/cancel")
 def cancel_event(event_id: str, user=Depends(verify_token)):
-    if user["role"] not in ["admin", "event_manager"]:
+    if user["role"] not in ["Admin", "Event_manager"]:
         raise HTTPException(status_code=403, detail="Forbidden")
     doc_ref = db.collection("events").document(event_id)
     if not doc_ref.get().exists:
@@ -119,3 +120,56 @@ async def post_comment(event_id: str, req: Request, user=Depends(verify_token)):
 @app.get("/verify-token")
 def verify(token: str = Depends(verify_token)):
     return {"email": token["email"], "role": token["role"]}
+
+# Edit event
+class EventUpdate(BaseModel):
+    title: Optional[str]
+    description: Optional[str]
+    date: Optional[str]  # Expecting YYYY-MM-DD
+    image_url: Optional[str]
+
+@app.put("/events/{event_id}")
+def update_event(event_id: str, update: EventUpdate, user=Depends(verify_token)):
+    if user.get("role") not in ["Admin", "Event_manager"]:
+        raise HTTPException(status_code=403, detail="You are not allowed to edit events.")
+
+    event_ref = db.collection("events").document(event_id)
+    event_doc = event_ref.get()
+    if not event_doc.exists:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    update_data = {k: v for k, v in update.dict().items() if v is not None}
+    if "date" in update_data:
+        try:
+            datetime.datetime.strptime(update_data["date"], "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+    event_ref.update(update_data)
+    return {"msg": "Event updated successfully."}
+
+# Filter events
+@app.get("/events/filter")
+def filter_events_by_date(start: str = Query(...), end: str = Query(...)):
+    try:
+        start_date = datetime.datetime.strptime(start, "%Y-%m-%d")
+        end_date = datetime.datetime.strptime(end, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Dates must be in YYYY-MM-DD format")
+
+    docs = db.collection("events").stream()
+    filtered = []
+    for doc in docs:
+        data = doc.to_dict()
+        event_date_str = data.get("date")
+        if not event_date_str:
+            continue
+        try:
+            event_date = datetime.datetime.strptime(event_date_str, "%Y-%m-%d")
+            if start_date <= event_date <= end_date:
+                data["id"] = doc.id
+                filtered.append(data)
+        except:
+            continue
+
+    return filtered
