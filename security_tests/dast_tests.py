@@ -1,8 +1,12 @@
-
 import requests
 import os
 
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
+BASE_URL = f"https://identitytoolkit.googleapis.com/v1"
+
+if not FIREBASE_API_KEY:
+    print("❌ FIREBASE_API_KEY not found. Set it in GitHub secrets or environment.")
+    exit(1)
 
 def print_result(name, response):
     print(f"\n== {name} ==")
@@ -12,54 +16,52 @@ def print_result(name, response):
     except Exception:
         print("Response Text:", response.text)
 
-# Test 1: Invalid token verification
-print("Testing /verify-token with invalid token")
-headers = {"Authorization": "Bearer invalidtoken123"}
+# Teste 1: Login com SQLi no e-mail
+print("Testing Firebase login with SQL Injection payload")
 try:
-    r = requests.get(f"{API_URL}/verify-token", headers=headers)
-    print_result("Invalid Token Verification", r)
+    r = requests.post(f"{BASE_URL}/accounts:signInWithPassword?key={FIREBASE_API_KEY}", json={
+        "email": "test@example.com' OR '1'='1",
+        "password": "fakepass",
+        "returnSecureToken": True
+    })
+    print_result("Login SQL Injection", r)
 except Exception as e:
     print("Erro:", e)
 
-# Test 2: accessing /events without token
-print("\nTesting /events without token")
+# Teste 2: Login com email vazio
+print("\nTesting login with empty email")
 try:
-    r = requests.get(f"{API_URL}/events")
-    print_result("Public Events Access", r)
+    r = requests.post(f"{BASE_URL}/accounts:signInWithPassword?key={FIREBASE_API_KEY}", json={
+        "email": "",
+        "password": "123456",
+        "returnSecureToken": True
+    })
+    print_result("Login Empty Email", r)
 except Exception as e:
     print("Erro:", e)
 
-# Test 3: Create event with SQL injection
-print("\nTesting /events/create with SQL Injection payload")
-payload = {
-    "title": "Event'; DROP TABLE events;--",
-    "date": "2025-12-31",
-    "description": "Test SQL injection",
-    "image_url": ""
-}
+# Teste 3: Registo com e-mail XSS
+print("\nTesting registration with XSS in email")
 try:
-    r = requests.post(f"{API_URL}/events/create", json=payload, headers=headers)
-    print_result("SQL Injection Attempt", r)
+    r = requests.post(f"{BASE_URL}/accounts:signUp?key={FIREBASE_API_KEY}", json={
+        "email": "<script>alert('xss')</script>@test.com",
+        "password": "123456",
+        "returnSecureToken": True
+    })
+    print_result("Register XSS Email", r)
 except Exception as e:
     print("Erro:", e)
 
-# Test  4: XSS comment injection
-print("\nTesting comment injection (XSS)")
-payload = {
-    "event_id": "nonexistent",
-    "text": "<script>alert('xss')</script>",
-    "author": "attacker"
-}
+# Teste 4: Registo com password muito curta
+print("\nTesting registration with short password")
 try:
-    r = requests.post(f"{API_URL}/events/nonexistent/comment", json=payload, headers=headers)
-    print_result("XSS Comment Injection", r)
+    r = requests.post(f"{BASE_URL}/accounts:signUp?key={FIREBASE_API_KEY}", json={
+        "email": "validuser@test.com",
+        "password": "12",
+        "returnSecureToken": True
+    })
+    print_result("Register Short Password", r)
 except Exception as e:
     print("Erro:", e)
 
-# Test 5: Cancel event with fake ID
-print("\nTesting event cancellation with fake ID")
-try:
-    r = requests.post(f"{API_URL}/events/fake-id/cancel", headers=headers)
-    print_result("Cancel Nonexistent Event", r)
-except Exception as e:
-    print("Erro:", e)
+print("\n✅ DAST Firebase tests completed.")
