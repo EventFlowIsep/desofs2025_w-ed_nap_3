@@ -79,3 +79,41 @@ chmod +x run_sast.sh run_sca.sh
 .\Security\Analysis\run_sast.ps1
 .\Security\Analysis\run_sca.ps1
 Necessário ter o git instalado e correr sh Security/Analysis/run_sast.sh
+
+## 🔄 Deploy para Ambiente de Staging
+
+### ✅ Objetivo
+Automatizar ou semi-automatizar o processo de deploy da aplicação web (neste caso, baseada em Streamlit), de forma a simular um ambiente de staging. Este ambiente é usado para validar a aplicação antes da entrega ou produção, como previsto no ciclo DevSecOps.
+
+---
+
+### ⚙️ Estratégia Utilizada
+
+Optámos por uma solução leve e simples baseada em **Docker**, executada localmente no runner do GitHub Actions. A aplicação é empacotada num container e executada automaticamente após os testes, criando uma simulação funcional de staging.
+
+---
+
+### 📁 Ficheiros e Configuração
+
+- **`Dockerfile`**: Define a imagem da aplicação, com base em Python 3.10, instalando as dependências e executando o ficheiro `streamlit_app/app.py`.
+- **`docker-compose.yml`**: Permite correr facilmente o container, mapeando a porta 8501.
+- **`ci.yml`**: Pipeline definida no GitHub Actions, com os seguintes jobs:
+  - `build-and-test`: instala dependências, executa testes, SAST (Bandit) e SCA (pip-audit).
+  - `deploy-staging`: constrói e corre o container com a aplicação.
+
+---
+
+### 🛠️ Execução da Pipeline
+
+O deploy pode ser disparado automaticamente após os testes com `needs: build-and-test`, ou manualmente através da interface do GitHub (graças ao `workflow_dispatch`).
+
+---
+
+### 🗺️ Diagrama da Pipeline (Mermaid)
+
+```mermaid
+graph TD
+    A[Push/Pull Request] --> B(Build & Test)
+    B --> C(SAST - Bandit)
+    B --> D(SCA - pip-audit)
+    B --> E[Deploy to Docker (Staging)]
