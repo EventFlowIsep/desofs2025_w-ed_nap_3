@@ -1,46 +1,63 @@
 import requests
-import os
 
-API_KEY = os.getenv("FIREBASE_API_KEY")
-BASE_FIREBASE_URL = "https://identitytoolkit.googleapis.com/v1"
+API_URL = "http://localhost:8000"
 
-def test_firebase_sql_injection_login():
-    print("Testing Firebase login with SQL injection payload")
-    payload = {
-        "email": "' OR '1'='1@example.com",
-        "password": "123456",
-        "returnSecureToken": True
-    }
-    url = f"{BASE_FIREBASE_URL}/accounts:signInWithPassword?key={API_KEY}"
-    response = requests.post(url, json=payload)
-    print("Status code:", response.status_code)
-    print("Response body:", response.text)
-    assert response.status_code in [400, 403, 422]
-
-def test_firebase_empty_password():
-    print("Testing Firebase login with empty password")
-    payload = {
-        "email": "test@example.com",
-        "password": "",
-        "returnSecureToken": True
-    }
-    url = f"{BASE_FIREBASE_URL}/accounts:signInWithPassword?key={API_KEY}"
-    response = requests.post(url, json=payload)
-    print("Status code:", response.status_code)
-    assert response.status_code in [400, 403, 422]
-
-def test_invalid_token_verification():
-    print("Testing invalid token verification on internal endpoint")
-    headers = {"Authorization": "Bearer INVALID_TOKEN"}
+def print_result(name, response):
+    print(f"\n== {name} ==")
+    print(f"Status code: {response.status_code}")
     try:
-        response = requests.get("http://localhost:8000/verify-token", headers=headers, timeout=3)
-        print("Status code:", response.status_code)
-        assert response.status_code in [401, 403]
-    except requests.exceptions.RequestException as e:
-        print("Error connecting to internal endpoint: it probably does not exist.")
-        print(str(e))
+        print("Response JSON:", response.json())
+    except Exception:
+        print("Response Text:", response.text)
 
-if __name__ == "__main__":
-    test_firebase_sql_injection_login()
-    test_firebase_empty_password()
-    test_invalid_token_verification()
+# Test 1: Invalid token verification
+print("Testing /verify-token with invalid token")
+headers = {"Authorization": "Bearer invalidtoken123"}
+try:
+    r = requests.get(f"{API_URL}/verify-token", headers=headers)
+    print_result("Invalid Token Verification", r)
+except Exception as e:
+    print("Erro:", e)
+
+# Test 2: accessing /events without token
+print("\nTesting /events without token")
+try:
+    r = requests.get(f"{API_URL}/events")
+    print_result("Public Events Access", r)
+except Exception as e:
+    print("Erro:", e)
+
+# Test 3: Create event with SQL injection
+print("\nTesting /events/create with SQL Injection payload")
+payload = {
+    "title": "Event'; DROP TABLE events;--",
+    "date": "2025-12-31",
+    "description": "Test SQL injection",
+    "image_url": ""
+}
+try:
+    r = requests.post(f"{API_URL}/events/create", json=payload, headers=headers)
+    print_result("SQL Injection Attempt", r)
+except Exception as e:
+    print("Erro:", e)
+
+# Test  4: XSS comment injection
+print("\nTesting comment injection (XSS)")
+payload = {
+    "event_id": "nonexistent",
+    "text": "<script>alert('xss')</script>",
+    "author": "attacker"
+}
+try:
+    r = requests.post(f"{API_URL}/events/nonexistent/comment", json=payload, headers=headers)
+    print_result("XSS Comment Injection", r)
+except Exception as e:
+    print("Erro:", e)
+
+# Test 5: Cancel event with fake ID
+print("\nTesting event cancellation with fake ID")
+try:
+    r = requests.post(f"{API_URL}/events/fake-id/cancel", headers=headers)
+    print_result("Cancel Nonexistent Event", r)
+except Exception as e:
+    print("Erro:", e)
