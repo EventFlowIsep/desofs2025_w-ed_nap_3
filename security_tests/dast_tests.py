@@ -2,7 +2,7 @@
 import requests
 import os
 
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+API_URL = os.getenv("API_URL", "http://localhost:8501")
 
 def print_result(name, response):
     print(f"\n== {name} ==")
