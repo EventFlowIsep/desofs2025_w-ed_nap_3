@@ -86,7 +86,7 @@ async def create_event(req: Request, user=Depends(verify_token)):
 
 @app.post("/events/{event_id}/cancel")
 def cancel_event(event_id: str, user=Depends(verify_token)):
-    if user["role"] not in ["Admin", "Event_manager"]:
+    if user["role"] not in ["Admin", "Event_manager", "Moderator"]:
         raise HTTPException(status_code=403, detail="Forbidden")
     doc_ref = db.collection("events").document(event_id)
     if not doc_ref.get().exists:
@@ -130,7 +130,7 @@ class EventUpdate(BaseModel):
 
 @app.put("/events/{event_id}")
 def update_event(event_id: str, update: EventUpdate, user=Depends(verify_token)):
-    if user.get("role") not in ["Admin", "Event_manager"]:
+    if user.get("role") not in ["Admin", "Event_manager", "Moderator"]:
         raise HTTPException(status_code=403, detail="You are not allowed to edit events.")
 
     event_ref = db.collection("events").document(event_id)
