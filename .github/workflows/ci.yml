@@ -68,7 +68,8 @@ jobs:
     needs: deploy-staging
 
     env:
-      FIREBASE_API_KEY: AIzaSyAHeLl9iaCku3LpBr0L-6Q3vMHQevgIw8c
+      # FIREBASE_API_KEY: AIzaSyAHeLl9iaCku3LpBr0L-6Q3vMHQevgIw8c
+      FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
 
     steps:
       - name: Checkout code
