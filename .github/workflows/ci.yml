@@ -60,7 +60,7 @@ jobs:
         run: docker build -t streamlit-app-staging .
 
       - name: Run Docker container
-        run: docker run -d -p 8000:8000 streamlit-app-staging
+        run: docker run -d -p 8501:8501 streamlit-app-staging
 
   dast-test:
     name: DAST - Custom Security Scan
@@ -68,7 +68,7 @@ jobs:
     needs: deploy-staging
 
     env:
-      FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+      API_URL: http://localhost:8501
 
     steps:
       - name: Checkout code
