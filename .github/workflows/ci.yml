@@ -68,7 +68,7 @@ jobs:
     needs: deploy-staging
 
     env:
-      API_URL: http://localhost:8501
+      API_URL: http://localhost:8000
 
     steps:
       - name: Checkout code
