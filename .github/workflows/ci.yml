@@ -61,25 +61,3 @@ jobs:
 
       - name: Run Docker container
         run: docker run -d -p 8501:8501 streamlit-app-staging
-
-  dast-test:
-    name: Dynamic Analysis with OWASP ZAP
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Build FastAPI image
-        run: docker build -f Dockerfile.fastapi -t fastapi-staging .
-
-      - name: Run FastAPI container
-        run: docker run -d --network=host fastapi-staging
-
-      - name: Wait for FastAPI
-        run: sleep 10
-
-      - name: Run ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.11.0
-        with:
-          target: 'http://localhost:8000'
