@@ -77,9 +77,11 @@ async def create_event(req: Request, user=Depends(verify_token)):
         "date": date,
         "description": description,
         "image_url": image_url,
+        "category": body.get("category", "Uncategorized"),
         "created_by": user["email"],
         "cancelled": False,
-        "comments": []
+        "comments": [],
+        "registrations": []
     }
     db.collection("events").add(event)
     return {"message": "Event created successfully."}
@@ -121,12 +123,12 @@ async def post_comment(event_id: str, req: Request, user=Depends(verify_token)):
 def verify(token: str = Depends(verify_token)):
     return {"email": token["email"], "role": token["role"]}
 
-# Edit event
 class EventUpdate(BaseModel):
     title: Optional[str]
     description: Optional[str]
     date: Optional[str]  # Expecting YYYY-MM-DD
     image_url: Optional[str]
+    category: Optional[str]
 
 @app.put("/events/{event_id}")
 def update_event(event_id: str, update: EventUpdate, user=Depends(verify_token)):
@@ -148,7 +150,6 @@ def update_event(event_id: str, update: EventUpdate, user=Depends(verify_token))
     event_ref.update(update_data)
     return {"msg": "Event updated successfully."}
 
-# Filter events
 @app.get("/events/filter")
 def filter_events_by_date(start: str = Query(...), end: str = Query(...)):
     try:
@@ -173,3 +174,61 @@ def filter_events_by_date(start: str = Query(...), end: str = Query(...)):
             continue
 
     return filtered
+
+@app.post("/events/{event_id}/register")
+def register_for_event(event_id: str, user=Depends(verify_token)):
+    doc_ref = db.collection("events").document(event_id)
+    if not doc_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    registration = {
+        "uid": user["uid"],
+        "email": user["email"],
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    }
+
+    doc_ref.update({"registrations": firestore.ArrayUnion([registration])})
+    return {"msg": "You have been registered for the event."}
+
+class Category(BaseModel):
+    name: str
+    description: str = ""
+
+@app.post("/categories")
+def create_category(category: Category, user=Depends(verify_token)):
+    if user["role"] != "Admin":
+        raise HTTPException(status_code=403, detail="Only Admin can create categories.")
+
+    cat_data = category.dict()
+    db.collection("categories").add(cat_data)
+    return {"msg": "Category created successfully."}
+
+class CommentToDelete(BaseModel):
+    author: str
+    timestamp: str
+    text: str
+
+@app.delete("/events/{event_id}/comment")
+def delete_comment(event_id: str, comment: CommentToDelete, user=Depends(verify_token)):
+    event_ref = db.collection("events").document(event_id)
+    event_doc = event_ref.get()
+    if not event_doc.exists:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    event_data = event_doc.to_dict()
+    role = user.get("role")
+
+    if role not in ["Admin", "Moderator"]:
+        if role == "Event_manager" and event_data.get("created_by") != user["email"]:
+            raise HTTPException(status_code=403, detail="You can only delete comments on events you created.")
+        elif role != "Event_manager":
+            raise HTTPException(status_code=403, detail="Permission denied.")
+
+    comment_dict = comment.dict()
+    existing_comments = event_data.get("comments", [])
+    if comment_dict not in existing_comments:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    updated_comments = [c for c in existing_comments if c != comment_dict]
+    event_ref.update({"comments": updated_comments})
+    return {"msg": "Comment deleted successfully."}

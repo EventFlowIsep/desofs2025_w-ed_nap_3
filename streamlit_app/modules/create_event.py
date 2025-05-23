@@ -27,7 +27,23 @@ def show():
         st.warning("❌ You do not have permission to create events.")
         return
 
+    # Buscar categorias disponíveis
+    try:
+        cat_res = requests.get(f"{API_URL}/categories", headers=headers, timeout=DEFAULT_TIMEOUT)
+        if cat_res.status_code == 200:
+            categories = cat_res.json()
+            category_names = [c['name'] for c in categories]
+        else:
+            category_names = []
+    except:
+        category_names = []
+
+    if not category_names:
+        st.warning("⚠️ You must create at least one category before creating events.")
+        return
+
     with st.form("create_event_form"):
+        category = st.selectbox("Select Category", category_names)
         title = st.text_input("Title")
         date = st.date_input("Date")
         description = st.text_area("Description")
@@ -36,6 +52,7 @@ def show():
 
         if submitted:
             payload = {
+                "category": category,
                 "title": title,
                 "date": str(date),
                 "description": description,
