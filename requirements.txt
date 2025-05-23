@@ -4,9 +4,19 @@ pillow
 pandas
 matplotlib
 fastapi
+<<<<<<< HEAD
 uvicorn
 cloudinary
 bandit
 pip-audit
 python-dotenv
 setuptools==74.1.1
+=======
+uvicorn>=0.18.0
+cloudinary
+bandit 
+pip-audit
+python-dotenv
+tornado>=6.5
+snyk
+>>>>>>> 1a1e15a5a93c8a8421a51d842ac16f6215cf46c3

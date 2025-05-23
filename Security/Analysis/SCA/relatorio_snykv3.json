@@ -1,0 +1,383 @@
+{
+  "vulnerabilities": [
+    {
+      "id": "SNYK-PYTHON-TORNADO-10176059",
+      "title": "Allocation of Resources Without Limits or Throttling",
+      "CVSSv3": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "credit": [
+        "Startr4ck"
+      ],
+      "semver": {
+        "vulnerable": [
+          "[,6.5)"
+        ]
+      },
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "6.5"
+      ],
+      "patches": [],
+      "insights": {
+        "triageAdvice": null
+      },
+      "language": "python",
+      "severity": "high",
+      "cvssScore": 8.7,
+      "functions": [],
+      "malicious": false,
+      "isDisputed": false,
+      "moduleName": "tornado",
+      "references": [
+        {
+          "url": "https://github.com/tornadoweb/tornado/commit/b39b892bf78fe8fea01dd45199aa88307e7162f3",
+          "title": "GitHub Commit"
+        }
+      ],
+      "cvssDetails": [
+        {
+          "assigner": "Red Hat",
+          "severity": "high",
+          "cvssV3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "cvssV3BaseScore": 7.5,
+          "modificationTime": "2025-05-16T13:44:13.243724Z"
+        }
+      ],
+      "cvssSources": [
+        {
+          "type": "primary",
+          "vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:N",
+          "assigner": "Snyk",
+          "severity": "high",
+          "baseScore": 8.7,
+          "cvssVersion": "4.0",
+          "modificationTime": "2025-05-16T07:48:09.625114Z"
+        },
+        {
+          "type": "secondary",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "assigner": "Snyk",
+          "severity": "high",
+          "baseScore": 7.5,
+          "cvssVersion": "3.1",
+          "modificationTime": "2025-05-16T07:48:09.625114Z"
+        },
+        {
+          "type": "secondary",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "assigner": "Red Hat",
+          "severity": "high",
+          "baseScore": 7.5,
+          "cvssVersion": "3.1",
+          "modificationTime": "2025-05-16T13:44:13.243724Z"
+        }
+      ],
+      "description": "## Overview\n[tornado](https://github.com/tornadoweb/tornado) is a Python web framework and asynchronous networking library, originally developed at FriendFeed.\n\nAffected versions of this package are vulnerable to Allocation of Resources Without Limits or Throttling through the `multipart/form-data` parser. An attacker can generate an extremely high volume of logs, leading to a denial of service by sending malformed multipart form data that triggers continuous error logging.\n\n**Note:**\n\nThis is only exploitable if the logging subsystem is synchronous.\n\n## Workaround\n\nThis vulnerability can be mitigated by blocking `Content-Type: multipart/form-data` in a proxy.\n## Remediation\nUpgrade `tornado` to version 6.5 or higher.\n## References\n- [GitHub Commit](https://github.com/tornadoweb/tornado/commit/b39b892bf78fe8fea01dd45199aa88307e7162f3)\n",
+      "epssDetails": {
+        "percentile": "0.28670",
+        "probability": "0.00099",
+        "modelVersion": "v2025.03.14"
+      },
+      "identifiers": {
+        "CVE": [
+          "CVE-2025-47287"
+        ],
+        "CWE": [
+          "CWE-770"
+        ],
+        "GHSA": [
+          "GHSA-7cx3-6m66-7c5m"
+        ]
+      },
+      "packageName": "tornado",
+      "proprietary": false,
+      "creationTime": "2025-05-16T07:48:09.099548Z",
+      "functions_new": [],
+      "alternativeIds": [],
+      "disclosureTime": "2025-05-15T21:45:27.256000Z",
+      "exploitDetails": {
+        "sources": [],
+        "maturityLevels": [
+          {
+            "type": "secondary",
+            "level": "Not Defined",
+            "format": "CVSSv3"
+          },
+          {
+            "type": "primary",
+            "level": "Not Defined",
+            "format": "CVSSv4"
+          }
+        ]
+      },
+      "packageManager": "pip",
+      "publicationTime": "2025-05-16T07:48:09.575759Z",
+      "severityBasedOn": "CVSS",
+      "modificationTime": "2025-05-16T13:44:13.243724Z",
+      "socialTrendAlert": false,
+      "severityWithCritical": "high",
+      "from": [
+        "desofs2025_w-ed_nap_3@0.0.0",
+        "streamlit@1.45.0",
+        "tornado@6.4.2"
+      ],
+      "upgradePath": [],
+      "isUpgradable": false,
+      "isPatchable": false,
+      "name": "tornado",
+      "version": "6.4.2"
+    }
+  ],
+  "ok": false,
+  "dependencyCount": 78,
+  "org": "1240598rafa",
+  "policy": "# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.\nversion: v1.25.1\nignore: {}\npatch: {}\n",
+  "isPrivate": true,
+  "licensesPolicy": {
+    "severities": {},
+    "orgLicenseRules": {
+      "AGPL-1.0": {
+        "licenseType": "AGPL-1.0",
+        "severity": "high",
+        "instructions": ""
+      },
+      "AGPL-3.0": {
+        "licenseType": "AGPL-3.0",
+        "severity": "high",
+        "instructions": ""
+      },
+      "Artistic-1.0": {
+        "licenseType": "Artistic-1.0",
+        "severity": "medium",
+        "instructions": ""
+      },
+      "Artistic-2.0": {
+        "licenseType": "Artistic-2.0",
+        "severity": "medium",
+        "instructions": ""
+      },
+      "CDDL-1.0": {
+        "licenseType": "CDDL-1.0",
+        "severity": "medium",
+        "instructions": ""
+      },
+      "CPOL-1.02": {
+        "licenseType": "CPOL-1.02",
+        "severity": "high",
+        "instructions": ""
+      },
+      "EPL-1.0": {
+        "licenseType": "EPL-1.0",
+        "severity": "medium",
+        "instructions": ""
+      },
+      "GPL-2.0": {
+        "licenseType": "GPL-2.0",
+        "severity": "high",
+        "instructions": ""
+      },
+      "GPL-3.0": {
+        "licenseType": "GPL-3.0",
+        "severity": "high",
+        "instructions": ""
+      },
+      "LGPL-2.0": {
+        "licenseType": "LGPL-2.0",
+        "severity": "medium",
+        "instructions": ""
+      },
+      "LGPL-2.1": {
+        "licenseType": "LGPL-2.1",
+        "severity": "medium",
+        "instructions": ""
+      },
+      "LGPL-3.0": {
+        "licenseType": "LGPL-3.0",
+        "severity": "medium",
+        "instructions": ""
+      },
+      "MPL-1.1": {
+        "licenseType": "MPL-1.1",
+        "severity": "medium",
+        "instructions": ""
+      },
+      "MPL-2.0": {
+        "licenseType": "MPL-2.0",
+        "severity": "medium",
+        "instructions": ""
+      },
+      "MS-RL": {
+        "licenseType": "MS-RL",
+        "severity": "medium",
+        "instructions": ""
+      },
+      "SimPL-2.0": {
+        "licenseType": "SimPL-2.0",
+        "severity": "high",
+        "instructions": ""
+      }
+    }
+  },
+  "packageManager": "pip",
+  "ignoreSettings": {
+    "adminOnly": false,
+    "reasonRequired": false,
+    "disregardFilesystemIgnores": false,
+    "autoApproveIgnores": false
+  },
+  "summary": "1 vulnerable dependency path",
+  "remediation": {
+    "unresolved": [
+      {
+        "id": "SNYK-PYTHON-TORNADO-10176059",
+        "title": "Allocation of Resources Without Limits or Throttling",
+        "CVSSv3": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "credit": [
+          "Startr4ck"
+        ],
+        "semver": {
+          "vulnerable": [
+            "[,6.5)"
+          ]
+        },
+        "exploit": "Not Defined",
+        "fixedIn": [
+          "6.5"
+        ],
+        "patches": [],
+        "insights": {
+          "triageAdvice": null
+        },
+        "language": "python",
+        "severity": "high",
+        "cvssScore": 8.7,
+        "functions": [],
+        "malicious": false,
+        "isDisputed": false,
+        "moduleName": "tornado",
+        "references": [
+          {
+            "url": "https://github.com/tornadoweb/tornado/commit/b39b892bf78fe8fea01dd45199aa88307e7162f3",
+            "title": "GitHub Commit"
+          }
+        ],
+        "cvssDetails": [
+          {
+            "assigner": "Red Hat",
+            "severity": "high",
+            "cvssV3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+            "cvssV3BaseScore": 7.5,
+            "modificationTime": "2025-05-16T13:44:13.243724Z"
+          }
+        ],
+        "cvssSources": [
+          {
+            "type": "primary",
+            "vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:N",
+            "assigner": "Snyk",
+            "severity": "high",
+            "baseScore": 8.7,
+            "cvssVersion": "4.0",
+            "modificationTime": "2025-05-16T07:48:09.625114Z"
+          },
+          {
+            "type": "secondary",
+            "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+            "assigner": "Snyk",
+            "severity": "high",
+            "baseScore": 7.5,
+            "cvssVersion": "3.1",
+            "modificationTime": "2025-05-16T07:48:09.625114Z"
+          },
+          {
+            "type": "secondary",
+            "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+            "assigner": "Red Hat",
+            "severity": "high",
+            "baseScore": 7.5,
+            "cvssVersion": "3.1",
+            "modificationTime": "2025-05-16T13:44:13.243724Z"
+          }
+        ],
+        "description": "## Overview\n[tornado](https://github.com/tornadoweb/tornado) is a Python web framework and asynchronous networking library, originally developed at FriendFeed.\n\nAffected versions of this package are vulnerable to Allocation of Resources Without Limits or Throttling through the `multipart/form-data` parser. An attacker can generate an extremely high volume of logs, leading to a denial of service by sending malformed multipart form data that triggers continuous error logging.\n\n**Note:**\n\nThis is only exploitable if the logging subsystem is synchronous.\n\n## Workaround\n\nThis vulnerability can be mitigated by blocking `Content-Type: multipart/form-data` in a proxy.\n## Remediation\nUpgrade `tornado` to version 6.5 or higher.\n## References\n- [GitHub Commit](https://github.com/tornadoweb/tornado/commit/b39b892bf78fe8fea01dd45199aa88307e7162f3)\n",
+        "epssDetails": {
+          "percentile": "0.28670",
+          "probability": "0.00099",
+          "modelVersion": "v2025.03.14"
+        },
+        "identifiers": {
+          "CVE": [
+            "CVE-2025-47287"
+          ],
+          "CWE": [
+            "CWE-770"
+          ],
+          "GHSA": [
+            "GHSA-7cx3-6m66-7c5m"
+          ]
+        },
+        "packageName": "tornado",
+        "proprietary": false,
+        "creationTime": "2025-05-16T07:48:09.099548Z",
+        "functions_new": [],
+        "alternativeIds": [],
+        "disclosureTime": "2025-05-15T21:45:27.256000Z",
+        "exploitDetails": {
+          "sources": [],
+          "maturityLevels": [
+            {
+              "type": "secondary",
+              "level": "Not Defined",
+              "format": "CVSSv3"
+            },
+            {
+              "type": "primary",
+              "level": "Not Defined",
+              "format": "CVSSv4"
+            }
+          ]
+        },
+        "packageManager": "pip",
+        "publicationTime": "2025-05-16T07:48:09.575759Z",
+        "severityBasedOn": "CVSS",
+        "modificationTime": "2025-05-16T13:44:13.243724Z",
+        "socialTrendAlert": false,
+        "packagePopularityRank": 99,
+        "from": [
+          "desofs2025_w-ed_nap_3@0.0.0",
+          "streamlit@1.45.0",
+          "tornado@6.4.2"
+        ],
+        "upgradePath": [],
+        "isUpgradable": false,
+        "isPatchable": false,
+        "isPinnable": true,
+        "isRuntime": false,
+        "name": "tornado",
+        "version": "6.4.2",
+        "severityWithCritical": "high"
+      }
+    ],
+    "upgrade": {},
+    "patch": {},
+    "ignore": {},
+    "pin": {
+      "tornado@6.4.2": {
+        "upgradeTo": "tornado@6.5",
+        "vulns": [
+          "SNYK-PYTHON-TORNADO-10176059"
+        ],
+        "isTransitive": true
+      }
+    }
+  },
+  "filesystemPolicy": false,
+  "filtered": {
+    "ignore": [],
+    "patch": []
+  },
+  "uniqueCount": 1,
+  "projectName": "desofs2025_w-ed_nap_3",
+  "displayTargetFile": "C:\\Users\\rafa\\Desktop\\ISEP\\DESOFS\\Projeto\\desofs2025_w-ed_nap_3\\requirements.txt",
+  "hasUnknownVersions": false,
+  "path": "C:\\Users\\rafa\\Desktop\\ISEP\\DESOFS\\Projeto\\desofs2025_w-ed_nap_3"
+}

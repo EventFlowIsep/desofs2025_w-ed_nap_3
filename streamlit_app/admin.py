@@ -4,6 +4,8 @@ from firebase_admin import credentials, auth, initialize_app
 import firebase_admin
 import pandas as pd
 import datetime
+import os
+from dotenv import load_dotenv
 
 ROLE_CHOICES = {
     "Client": "client",
@@ -13,13 +15,14 @@ ROLE_CHOICES = {
     "Supplier": "supplier",
     "Partner": "partner"
 }
+load_dotenv()
+FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
 
 # Initialize Firebase Admin
 if not firebase_admin._apps:
     cred = credentials.Certificate("app/firebase_key.json")
     initialize_app(cred)
 
-FIREBASE_API_KEY = "AIzaSyAHeLl9iaCku3LpBr0L-6Q3vMHQevgIw8c"
 LOG_PATH = "admin_logs.csv"
 
 st.set_page_config(page_title="Admin Login | EventFlow", page_icon="🔐")
@@ -75,7 +78,7 @@ def list_users_with_roles():
     for user in users:
         claims = user.custom_claims or {}
         data.append({
-            "UID": user.id,  
+            "UID": user.uid,  
             "Email": user.email, 
             "Role": claims.get("role", "client"),
             "Last Sign-In": user.user_metadata.last_sign_in_timestamp,   

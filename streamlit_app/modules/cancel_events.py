@@ -4,6 +4,8 @@ import os
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
+DEFAULT_TIMEOUT = 10
+
 def show():
     st.title("❌ Cancel Events")
 
@@ -16,7 +18,7 @@ def show():
     # Verifica e armazena a role do utilizador
     if "user_role" not in st.session_state or not st.session_state.user_role:
         try:
-            res = requests.get(f"{API_URL}/verify-token", headers=headers)
+            res = requests.get(f"{API_URL}/verify-token", headers=headers, timeout=DEFAULT_TIMEOUT)
             if res.status_code == 200:
                 st.session_state.user_role = res.json().get("role", "client")
         except:
@@ -27,7 +29,7 @@ def show():
         return
 
     try:
-        res = requests.get(f"{API_URL}/events", headers=headers)
+        res = requests.get(f"{API_URL}/events", headers=headers, timeout=DEFAULT_TIMEOUT)
         if res.status_code == 200:
             events = res.json()
             uncancelled = [e for e in events if not e.get("cancelled")]
@@ -39,7 +41,7 @@ def show():
                     st.subheader(ev.get("title", "Untitled"))
                     st.write(f"📆 {ev.get('date', 'Unknown')} | 👤 {ev.get('created_by', 'Unknown')}")
                     if st.button(f"Cancel '{ev['title']}'", key=f"cancel_{ev['id']}"):
-                        cancel_res = requests.post(f"{API_URL}/events/{ev['id']}/cancel", headers=headers)
+                        cancel_res = requests.post(f"{API_URL}/events/{ev['id']}/cancel", headers=headers, timeout=DEFAULT_TIMEOUT)
                         if cancel_res.status_code == 200:
                             st.success(f"✅ Event '{ev['title']}' cancelled successfully.")
                             st.rerun()

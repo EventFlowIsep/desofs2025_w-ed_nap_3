@@ -76,7 +76,7 @@ snyk auth
 Docker tem de estar aberto
 chmod +x run_sast.sh run_sca.sh
 ./run_sast.ps1 && ./run_sca.ps1
-.\Security\Analysis\run_sast.ps1
+.\Security\Analysis\run_sast.ps1 (Docker ativo)
 .\Security\Analysis\run_sca.ps1
 Necessário ter o git instalado e correr sh Security/Analysis/run_sast.sh
 
