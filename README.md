@@ -79,3 +79,4 @@ chmod +x run_sast.sh run_sca.sh
 .\Security\Analysis\run_sast.ps1
 .\Security\Analysis\run_sca.ps1
 Necessário ter o git instalado e correr sh Security/Analysis/run_sast.sh
+
