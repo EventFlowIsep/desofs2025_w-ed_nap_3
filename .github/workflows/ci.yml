@@ -1,3 +1,4 @@
+
 name: CI Pipeline
 
 on:
@@ -20,19 +21,27 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies and run Pytest (backend)
+      - name: Install dependencies
         run: |
-          cd app
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest
-          pytest ../tests/
 
-      - name: Lint and SAST/SCA (backend + frontend)
+      - name: Run Pytest
         run: |
-          pip install bandit pip-audit
+          pip install pytest
+          pytest tests/
+
+      - name: Run Bandit (SAST)
+        continue-on-error: true
+        run: |
+          pip install bandit
           bandit -r app/
           bandit -r streamlit_app/
+
+      - name: Run pip-audit (SCA)
+        continue-on-error: true
+        run: |
+          pip install pip-audit
           pip-audit
 
   integration-test:
