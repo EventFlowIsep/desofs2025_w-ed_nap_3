@@ -54,7 +54,7 @@ jobs:
 
       - name: Set up Docker Compose
         run: |
-          docker-compose up -d --build
+          docker compose up -d --build
           sleep 15
 
       - name: Run DAST tests (update for your API)
