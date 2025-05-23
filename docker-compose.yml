@@ -1,20 +1,16 @@
 version: '3.8'
-
 services:
   backend:
     build:
-      context: ./app
-      dockerfile: ../Dockerfile.backend
+      context: .
+      dockerfile: Dockerfile.backend
     container_name: backend
     ports:
       - "8000:8000"
-    environment:
-      - PYTHONUNBUFFERED=1
-
   frontend:
     build:
-      context: ./streamlit_app
-      dockerfile: ../Dockerfile.frontend
+      context: .
+      dockerfile: Dockerfile.frontend
     container_name: frontend
     ports:
       - "8501:8501"

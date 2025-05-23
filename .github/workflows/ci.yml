@@ -57,12 +57,11 @@ jobs:
           docker compose up -d --build
           sleep 15
 
-      - name: Run DAST tests (update for your API)
+      - name: Run DAST tests (adapta para a tua API)
         run: |
           pip install requests
-          # Exemplo: python security_tests/dast_tests.py
-          # Adapta os testes para usarem a tua API, não só Firebase!
+          # python security_tests/dast_tests.py
 
       - name: Tear down services
         if: always()
-        run: docker-compose down
+        run: docker compose down
