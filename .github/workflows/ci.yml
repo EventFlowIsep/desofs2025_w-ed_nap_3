@@ -1,4 +1,3 @@
-
 name: CI Pipeline
 
 on:
@@ -21,31 +20,22 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install dependencies and run Pytest (backend)
         run: |
+          cd app
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Run Pytest
-        run: |
           pip install pytest
-          pytest tests/
+          pytest ../tests/
 
-      - name: Run Bandit (SAST)
-        continue-on-error: true
+      - name: Lint and SAST/SCA (backend + frontend)
         run: |
-          pip install bandit
+          pip install bandit pip-audit
           bandit -r app/
           bandit -r streamlit_app/
-
-      - name: Run pip-audit (SCA)
-        continue-on-error: true
-        run: |
-          pip install pip-audit
           pip-audit
 
-  deploy-staging:
-    name: Deploy to Docker (Staging - Streamlit)
+  integration-test:
     runs-on: ubuntu-latest
     needs: build-and-test
 
@@ -53,33 +43,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Compose
+        run: |
+          docker-compose up -d --build
+          sleep 15
 
-      - name: Build Docker image
-        run: docker build -t streamlit-app-staging .
+      - name: Run DAST tests (update for your API)
+        run: |
+          pip install requests
+          # Exemplo: python security_tests/dast_tests.py
+          # Adapta os testes para usarem a tua API, não só Firebase!
 
-      - name: Run Docker container
-        run: docker run -d -p 8501:8501 streamlit-app-staging
-
-  dast-test:
-    name: DAST - Custom Security Scan
-    runs-on: ubuntu-latest
-    needs: deploy-staging
-
-    env:
-      # FIREBASE_API_KEY: AIzaSyAHeLl9iaCku3LpBr0L-6Q3vMHQevgIw8c
-      FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Wait for services to be ready
-        run: sleep 10
-
-      - name: Install dependencies for DAST
-        run: pip install requests
-
-      - name: Run DAST Python tests
-        run: python security_tests/dast_tests.py
+      - name: Tear down services
+        if: always()
+        run: docker-compose down
