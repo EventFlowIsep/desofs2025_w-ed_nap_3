@@ -43,7 +43,7 @@ AUTHORIZED_ADMINS = ["adminuser@gmail.com"]
 def verify_admin_token(token):
     try:
         decoded = auth.verify_id_token(token)
-        is_admin = decoded.get("role") == "admin"
+        is_admin = decoded.get("role") == "Admin"
         is_whitelisted = decoded.get("email", "").lower() in AUTHORIZED_ADMINS
         return is_admin and is_whitelisted
     except Exception:
