@@ -11,3 +11,4 @@ pip-audit
 python-dotenv
 tornado>=6.5
 snyk
+dotenv
