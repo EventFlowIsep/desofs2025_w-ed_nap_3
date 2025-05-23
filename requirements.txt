@@ -4,8 +4,10 @@ pillow
 pandas
 matplotlib
 fastapi
-uvicorn
-couldinary
+uvicorn>=0.18.0
+cloudinary
 bandit 
 pip-audit
 python-dotenv
+tornado>=6.5
+snyk

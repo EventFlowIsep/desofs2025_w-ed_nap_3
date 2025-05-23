@@ -4,6 +4,7 @@ import os
 from datetime import datetime, date
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
+DEFAULT_TIMEOUT = 10
 
 def show():
     st.title("📅 All Events")
@@ -21,7 +22,7 @@ def show():
         filter_clicked = st.button("Apply Filter", key="filter_button")
 
     try:
-        res = requests.get(f"{API_URL}/events", headers=headers)
+        res = requests.get(f"{API_URL}/events", headers=headers, timeout=DEFAULT_TIMEOUT)
         if res.status_code == 200:
             events = res.json()
             if not events:
@@ -65,7 +66,7 @@ def show():
                                 "text": comment_text,
                                 "author": author or "guest"
                             }
-                            comment_res = requests.post(f"{API_URL}/events/{ev['id']}/comment", json=payload, headers=headers)
+                            comment_res = requests.post(f"{API_URL}/events/{ev['id']}/comment", json=payload, headers=headers, timeout=DEFAULT_TIMEOUT)
                             if comment_res.status_code == 200:
                                 st.success("Comment posted.")
                                 st.rerun()
@@ -86,7 +87,7 @@ def show():
                                     "description": new_desc,
                                     "image_url": new_image
                                 }
-                                update_res = requests.put(f"{API_URL}/events/{ev['id']}", json=payload, headers=headers)
+                                update_res = requests.put(f"{API_URL}/events/{ev['id']}", json=payload, headers=headers, timeout=DEFAULT_TIMEOUT)
                                 if update_res.status_code == 200:
                                     st.success("Event updated successfully!")
                                     st.rerun()

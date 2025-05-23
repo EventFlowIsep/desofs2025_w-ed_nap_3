@@ -3,6 +3,7 @@ import requests
 import os
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
+DEFAULT_TIMEOUT = 10
 
 def show():
     st.title("➕ Create Event")
@@ -16,7 +17,7 @@ def show():
     # Verificar role do utilizador
     if "user_role" not in st.session_state or not st.session_state.user_role:
         try:
-            res = requests.get(f"{API_URL}/verify-token", headers=headers)
+            res = requests.get(f"{API_URL}/verify-token", headers=headers, timeout=DEFAULT_TIMEOUT)
             if res.status_code == 200:
                 st.session_state.user_role = res.json().get("role", "client")
         except:
@@ -42,7 +43,7 @@ def show():
             }
 
             try:
-                res = requests.post(f"{API_URL}/events/create", json=payload, headers=headers)
+                res = requests.post(f"{API_URL}/events/create", json=payload, headers=headers, timeout=DEFAULT_TIMEOUT)
                 if res.status_code == 200:
                     st.success("✅ Event created successfully.")
                     st.experimental_rerun()
