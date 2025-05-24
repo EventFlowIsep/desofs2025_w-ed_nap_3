@@ -49,6 +49,11 @@ def verify_token(request: Request):
     except:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+@app.get("/debug-token")
+def debug_token(user=Depends(verify_token)):
+    return user
+
+
 @app.get("/events")
 def get_events(user=Depends(verify_token)):
     events_ref = db.collection("events")

@@ -9,3 +9,4 @@ couldinary
 bandit 
 pip-audit
 python-dotenv
+httpx
