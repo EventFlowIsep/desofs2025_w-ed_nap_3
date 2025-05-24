@@ -6,11 +6,14 @@ import requests
 from fastapi.testclient import TestClient
 from app.main import app
 from dotenv import load_dotenv
+from firebase_admin import credentials, auth, initialize_app
+from google.cloud import firestore
+import firebase_admin
 
 load_dotenv()
 
 client = TestClient(app)
-
+categorianome =""
 
 # 🔐 Funções para obter os tokens de cada utilizador
 def get_token(email, password):
@@ -45,7 +48,8 @@ def test_admin_create_event(admin_token):
         "title": "Admin Event Test",
         "date": "2025-07-01",
         "description": "Criado por Admin",
-        "image_url": ""
+        "image_url": "",
+        "category": categorianome
     }
     res = client.post("/events/create", json=data, headers=headers)
     assert res.status_code == 200
@@ -79,9 +83,23 @@ def test_client_cannot_create_event(client_token):
         "title": "Client Attempt",
         "date": "2025-08-01",
         "description": "Tentativa ilegal",
-        "image_url": ""
+        "image_url": "",
+        "category": categorianome
     }
     res = client.post("/events/create", json=data, headers=headers)
     assert res.status_code == 403  # Cliente não tem permissão
+
+
+if not firebase_admin._apps:
+    cred = credentials.Certificate("app/firebase_key.json")
+    firebase_admin.initialize_app(cred)
+
+db = firestore.Client()
+
+categories_ref = db.collection("categories")
+categories_docs = categories_ref.stream()
+
+for doc in categories_docs:
+    categorianome=doc.id
 
 
