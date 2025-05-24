@@ -18,6 +18,7 @@ bandit
 pip-audit
 python-dotenv
 <<<<<<< HEAD
+<<<<<<< HEAD
 tornado>=6.5
 snyk
 <<<<<<< HEAD
@@ -28,3 +29,6 @@ dotenv
 =======
 httpx
 >>>>>>> e23dd39 (commit)
+=======
+httpx
+>>>>>>> e23dd395095b17bdfcd38004367ffd28ec17b428
