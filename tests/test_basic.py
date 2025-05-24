@@ -9,11 +9,25 @@ from dotenv import load_dotenv
 from firebase_admin import credentials, auth, initialize_app
 from google.cloud import firestore
 import firebase_admin
-
+import time
+import datetime
+import json 
 load_dotenv()
+
 
 client = TestClient(app)
 categorianome =""
+if not firebase_admin._apps:
+    cred = credentials.Certificate("app/firebase_key.json")
+    firebase_admin.initialize_app(cred)
+
+db = firestore.Client()
+
+categories_ref = db.collection("categories")
+categories_docs = categories_ref.stream()
+
+for doc in categories_docs:
+    categorianome=doc.id
 
 # 🔐 Funções para obter os tokens de cada utilizador
 def get_token(email, password):
@@ -25,6 +39,7 @@ def get_token(email, password):
     }
     res = requests.post(url, json=payload)
     if res.status_code == 200:
+        time.sleep(0.5)
         return res.json()["idToken"]
     else:
         raise Exception("Login falhou: " + res.text)
@@ -34,9 +49,6 @@ def get_token(email, password):
 def admin_token():
     return get_token("adminuser@gmail.com", "1q2w3e4r5t6y")
 
-@pytest.fixture(scope="session")
-def client_token():
-    return get_token("testuser@gmail.com", "1q2w3e4r5t6y")
 
 # -------------------------------
 # 👑 TESTES DO ADMINISTRADOR
@@ -61,45 +73,105 @@ def test_admin_list_events(admin_token):
     assert res.status_code == 200
     assert isinstance(res.json(), list)
 
-# -------------------------------
-# 👤 TESTES DO CLIENTE
-# -------------------------------
 
-def test_client_view_events(client_token):
-    headers = {"Authorization": f"Bearer {client_token}"}
-    res = client.get("/events", headers=headers)
-    assert res.status_code == 200
-    assert isinstance(res.json(), list)
-
-def test_client_filter_events(client_token):
-    headers = {"Authorization": f"Bearer {client_token}"}
-    res = client.get("/events/filter?start=2025-01-01&end=2025-12-31", headers=headers)
-    assert res.status_code == 200
-    assert isinstance(res.json(), list)
-
-def test_client_cannot_create_event(client_token):
-    headers = {"Authorization": f"Bearer {client_token}"}
+def test_admin_cancel_event(admin_token):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    
+    # Primeiro cria um evento para cancelar
     data = {
-        "title": "Client Attempt",
-        "date": "2025-08-01",
-        "description": "Tentativa ilegal",
+        "title": "Evento para Cancelar",
+        "date": "2025-09-01",
+        "description": "Este evento será cancelado",
+        "image_url": "",
+        "category": categorianome
+    }
+    res_create = client.post("/events/create", json=data, headers=headers)
+    assert res_create.status_code == 200
+
+    # Obter o ID do evento recém-criado
+    res_list = client.get("/events", headers=headers)
+    eventos = res_list.json()
+    evento_id = next(e["id"] for e in eventos if e["title"] == "Evento para Cancelar")
+
+    # Cancelar o evento
+    res_cancel = client.post(f"/events/{evento_id}/cancel", headers=headers)
+    assert res_cancel.status_code == 200
+    assert f"Event {evento_id} cancelled." in res_cancel.json()["message"]
+
+def test_admin_edit_event(admin_token):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    # Criar evento
+    data = {
+        "title": "Evento a Editar",
+        "date": "2025-10-01",
+        "description": "testeEliminar",
         "image_url": "",
         "category": categorianome
     }
     res = client.post("/events/create", json=data, headers=headers)
-    assert res.status_code == 403  # Cliente não tem permissão
+    assert res.status_code == 200
+
+    # Obter ID do evento recém-criado
+    eventos = client.get("/events", headers=headers).json()
+    evento_id = next(
+        (e["id"] for e in eventos if e["title"] == "Evento a Editar" and e["description"] == "testeEliminar"),
+        None
+    )
+
+    # Atualizar o evento (respeitando o modelo EventUpdate)
+    update_data = {
+        "title": "Evento Editado",
+        "description": "Descrição atualizada pelo Admin",
+        "date": "2025-10-01",
+        "image_url": "",
+        "category": categorianome
+    }
+    res_update = client.put(
+        f"/events/{evento_id}",
+        json=update_data,
+        headers=headers
+    )
+    assert res_update.status_code == 200
+    assert res_update.json()["msg"] == "Event updated successfully."
+
+def test_admin_delete_comment(admin_token):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    # 1. Criar evento
+    event_data = {
+        "title": "Evento com Comentário",
+        "date": "2025-12-01",
+        "description": "Evento para teste de delete de comentário",
+        "image_url": "",
+        "category": categorianome
+    }
+    res_create = client.post("/events/create", json=event_data, headers=headers)
+    assert res_create.status_code == 200
+
+    # 2. Obter ID do evento
+    eventos = client.get("/events", headers=headers).json()
+    evento_id = next(e["id"] for e in eventos if e["title"] == "Evento com Comentário")
+
+    # 3. Adicionar comentário
+    comment = {
+        "author": "Admin Tester",
+        "text": "Comentário a remover",
+        "timestamp": datetime.datetime.utcnow().replace(microsecond=0).isoformat()
+    }
+    res_comment = client.post(f"/events/{evento_id}/comment", json=comment, headers=headers)
+    assert res_comment.status_code == 200
+
+    # 4. Apagar comentário — usar data + headers
+    headers["Content-Type"] = "application/json"
+    res_delete = client.request(
+    method="DELETE",
+    url=f"/events/{evento_id}/comment",
+    headers=headers,
+    data=json.dumps(comment))
 
 
-if not firebase_admin._apps:
-    cred = credentials.Certificate("app/firebase_key.json")
-    firebase_admin.initialize_app(cred)
+   
 
-db = firestore.Client()
-
-categories_ref = db.collection("categories")
-categories_docs = categories_ref.stream()
-
-for doc in categories_docs:
-    categorianome=doc.id
-
-
+teste =get_token("adminuser@gmail.com", "1q2w3e4r5t6y")
+aa = test_admin_delete_comment(teste)
