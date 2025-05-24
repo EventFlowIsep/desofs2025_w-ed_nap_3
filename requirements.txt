@@ -17,6 +17,7 @@ cloudinary
 bandit 
 pip-audit
 python-dotenv
+<<<<<<< HEAD
 tornado>=6.5
 snyk
 <<<<<<< HEAD
@@ -24,3 +25,6 @@ snyk
 =======
 dotenv
 >>>>>>> a69194a26f4f23204f35b4ba9e048147685922da
+=======
+httpx
+>>>>>>> e23dd39 (commit)
