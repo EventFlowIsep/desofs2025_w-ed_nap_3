@@ -8,6 +8,9 @@ import streamlit.web.cli as stcli
 import sys
 from modules import create_event, cancel_events, view_events
 from dotenv import load_dotenv
+from google.cloud import firestore
+import datetime
+
 
 st.set_page_config(
     page_title="EventFlow",
@@ -31,6 +34,14 @@ if "page" not in st.session_state:
     st.session_state.page = "auth"
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = ""
+if "title" not in st.session_state:
+    st.session_state.title = ""
+if "date" not in st.session_state:
+    st.session_state.date = datetime.date.today()
+if "description" not in st.session_state:
+    st.session_state.description = ""
+if "category" not in st.session_state:
+    st.session_state.category = ""
 
 DEFAULT_TIMEOUT = 10
 
@@ -58,6 +69,21 @@ def firebase_login(email, password):
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
     return requests.post(url, json={"email": email, "password": password, "returnSecureToken": True}, timeout=DEFAULT_TIMEOUT)
 
+db = firestore.Client.from_service_account_json("app/firebase_key.json")
+
+# List all Events categories
+def list_categories():
+    categories_ref = db.collection('categories')
+    categories = categories_ref.stream()
+    category_names = [category.id for category in categories]
+    return category_names
+
+def reset_form():
+                st.session_state.title = ""
+                st.session_state.date = datetime.date.today()
+                st.session_state.description = ""
+                st.session_state.category = ""
+
 # Redirect after login
 if st.session_state.page == "main":
     st.sidebar.title("📂 Menu")
@@ -83,7 +109,38 @@ if st.session_state.page == "main":
 
         elif selected == "Create Event":
             if st.session_state.user_role in ["Admin", "Event_manager"]:
-                create_event.show()
+                st.subheader("Create Event")
+
+                # Campos para o evento
+                st.session_state.title = st.text_input("Event Title", st.session_state.title)
+                st.session_state.date = st.date_input("Event Date", st.session_state.date)
+                st.session_state.description = st.text_area("Event Description", st.session_state.description)
+                
+                # Seleção da categoria
+                categories = list_categories() 
+                selected_category = st.selectbox("Select Category", categories)
+                
+
+                # Botão para submeter o evento
+                if st.button("Create Event"):
+                    payload = {
+                        "title": st.session_state.title,
+                        "date": str(st.session_state.date),
+                        "description": st.session_state.description,
+                        "category": selected_category
+                    }
+                    try:
+                        headers = {"Authorization": f"Bearer {st.session_state.token}"}
+                        res = requests.post(f"{API_URL}/events/create", json=payload, headers=headers)
+                        if res.status_code == 200:
+                            st.success("✅ Event created successfully.")
+                            reset_form()
+                        else:
+                            st.error("❌ Failed to create event.")
+                    except Exception as e:
+                        st.error(f"Backend error: {e}")
+                if st.button("Reset Form"):
+                    reset_form()
             else:
                 st.warning("❌ You do not have permission to create events.")
 

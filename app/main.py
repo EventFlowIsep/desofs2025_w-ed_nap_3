@@ -64,11 +64,26 @@ def get_events(user=Depends(verify_token)):
 async def create_event(req: Request, user=Depends(verify_token)):
     if user["role"] not in ["Admin", "Event_manager"]:
         raise HTTPException(status_code=403, detail="Forbidden")
+    
+    # Obtain existing categories
+    categories_ref = db.collection("categories")
+    categories_docs = categories_ref.stream()
+    categories = []
+    for doc in categories_docs:
+        categories.append(doc.to_dict())
+
+    if not categories:
+        raise HTTPException(status_code=400, detail="No categories found. Please create categories first.")
+    
     body = await req.json()
     title = body.get("title")
     date = body.get("date")
     description = body.get("description", "")
     image_url = body.get("image_url", "")
+    category = body.get("category")
+    
+    if category not in [cat["name"] for cat in categories]:
+        raise HTTPException(status_code=400, detail="Invalid category.")
     if not title or not date:
         raise HTTPException(status_code=400, detail="Missing title or date")
 
@@ -202,6 +217,20 @@ def create_category(category: Category, user=Depends(verify_token)):
     cat_data = category.dict()
     db.collection("categories").add(cat_data)
     return {"msg": "Category created successfully."}
+
+@app.get("/categories")
+def get_categories(user=Depends(verify_token)):
+    if user["role"] not in ["Admin", "Event_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin or Event Manager can view categories.")
+
+    categories_ref = db.collection("categories")
+    docs = categories_ref.stream()
+    categories = []
+    for doc in docs:
+        data = doc.to_dict()
+        data["id"] = doc.id
+        categories.append(data)
+    return categories
 
 class CommentToDelete(BaseModel):
     author: str

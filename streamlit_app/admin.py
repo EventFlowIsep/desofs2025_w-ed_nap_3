@@ -6,6 +6,8 @@ import pandas as pd
 import datetime
 import os
 from dotenv import load_dotenv
+from google.cloud import firestore
+
 
 ROLE_CHOICES = {
     "Client": "client",
@@ -22,6 +24,8 @@ FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
 if not firebase_admin._apps:
     cred = credentials.Certificate("app/firebase_key.json")
     initialize_app(cred)
+
+db = firestore.Client.from_service_account_json("app/firebase_key.json")
 
 LOG_PATH = "admin_logs.csv"
 
@@ -85,6 +89,30 @@ def list_users_with_roles():
         })
     return pd.DataFrame(data)
 
+# Create a category for events
+def create_category(name):
+    category_ref = db.collection('categories').document(name)
+    category_ref.set({
+        'name': name,
+        'created_at': datetime.datetime.now()
+    })
+    return f"✅ Category '{name}' created successfully."
+
+# List all categories and the number of events in each category
+def list_categories():
+    categories_ref = db.collection('categories')
+    categories = categories_ref.stream()
+    category_data = []
+    for category in categories:
+        category_info = category.to_dict()
+        events_ref = db.collection('events').where('category', '==', category_info['name'])
+        event_count = len(list(events_ref.stream()))
+        category_data.append({
+            "Category": category_info['name'],
+            "Number of Events": event_count
+        })
+    return pd.DataFrame(category_data)
+
 # Log changes
 def log_action(email, role):
     timestamp = datetime.datetime.now().isoformat()
@@ -144,6 +172,20 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
             st.dataframe(logs)
         except Exception:
             st.info("No log file found yet.")
+
+    with st.expander("🔍 Create Category"):
+        category_name = st.text_input("Enter category name", key="category_name")
+        if st.button("Create Category"):
+            if category_name:
+                result = create_category(category_name)
+                st.success(result)
+            else:
+                st.warning("❌ Category name is required.")
+
+    # List categories and the number of events in each category
+    with st.expander("📋 View Categories and Event Counts"):
+        df = list_categories()
+        st.dataframe(df)
 
     st.markdown("---")
     if st.button("Log out"):
