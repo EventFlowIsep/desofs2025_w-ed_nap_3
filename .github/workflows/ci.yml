@@ -1,87 +1,15 @@
-name: CI/CD Pipeline
-
+name: Test Artifact
 on:
-  push:
-    branches: [ "main", "feature/*" ]
-  pull_request:
-    branches: [ "main", "feature/*" ]
   workflow_dispatch:
 
 jobs:
-  build-test:
-    name: Build and Test (Backend & Frontend)
+  artifact-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run Pytest (with coverage)
-        run: |
-          pip install pytest pytest-cov
-          pytest --cov=app --cov=streamlit_app --cov-report=xml
-
-      - name: Upload Test Coverage
+      - name: Criar ficheiro teste
+        run: echo "hello" > hello.txt
+      - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: coverage-report
-          path: coverage.xml
-
-      - name: Run Bandit (SAST)
-        run: |
-          pip install bandit
-          bandit -r app/ -o bandit_report.txt || true
-          bandit -r streamlit_app/ -o bandit_streamlit_report.txt || true
-
-      - name: Run Safety (SCA)
-        run: |
-          pip install safety
-          safety check -r requirements.txt -f text -o safety_report.txt || true
-
-      - name: Upload Security Reports
-        uses: actions/upload-artifact@v3
-        with:
-          name: security-reports
-          path: |
-            bandit_report.txt
-            bandit_streamlit_report.txt
-            safety_report.txt
-
-  deploy-staging:
-    name: Deploy to Staging with Docker Compose & DAST
-    needs: build-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Compose
-        run: |
-          docker-compose --version
-
-      - name: Build and start all services
-        run: docker-compose up -d --build
-
-      - name: Wait for services to be ready
-        run: sleep 15
-
-      - name: Install dependencies for DAST
-        run: pip install requests
-
-      - name: Run DAST Python tests
-        env:
-          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-        run: python security_tests/dast_tests.py
-
-      - name: Stop and clean up containers
-        if: ${{ always() }}
-        run: docker-compose down
+          name: hello
+          path: hello.txt
