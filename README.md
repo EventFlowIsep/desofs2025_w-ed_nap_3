@@ -1,82 +1,173 @@
-Event Management Platform – EventFlow
+The application was developed using **Domain-Driven Design (DDD)** and aligned with the **Secure Software Development Lifecycle (SSDLC)** methodology to ensure a modular architecture and strong security practices throughout development.
 
-This project is a web-based platform designed to manage events. The application allows users to create, edit, register for, moderate, and manage events and services, with features tailored to different user roles: Administrator, Event Manager, Client, Moderator, and Supplier.
+---
 
-The goal is to provide a modular, secure, and scalable solution for managing events of various types (conferences, workshops, webinars, etc.), promoting collaboration among organizers, participants, and service providers.
+## 🚀 Technologies Used
 
-Built with a Domain-Driven Design (DDD) architecture and following Secure Software Development Lifecycle (SSDLC) practices, the system ensures clarity in domain logic, role separation, and continuous security validation.
+* **Backend:** Python + FastAPI
+* **Frontend:** Streamlit (Python), HTML/CSS/JavaScript (template-based)
+* **Database:** Firebase (User Storage) Firestore (Events and Categories storage)
+* **Security & DevSecOps Tools:**
 
-Technologies Used
+  * Bandit
+  * Semgrep (via Docker)
+  * pip-audit
+  * Snyk
+  * OWASP ZAP
+* **Other:** Docker, Git, VS Code
 
-Backend: Python + FastAPI
+---
 
-Frontend: HTML/CSS/JavaScript (with templates)
+## ✅ Core Features by Role
 
-Database: SQLite
+### 🔐 General
 
-Security Tools: Bandit, Semgrep (via Docker), pip-audit, Snyk, OWASP ZAP
+* Secure user registration and login with Firebase Authentication
+* Role-based access control (RBAC)
 
-Others: Docker, Git, VS Code
+### 👤 Admin
 
-Core Features
+* Manage users and roles
+* Create and manage event categories
+* Access audit logs and security scan results
 
-✅ Secure user registration and login with role-based access control
+### 🧑‍💼 Event Manager
 
-✅ Creation and editing of events by authorized Event Managers
+* Create, edit, and cancel events
+* View registrations and feedback for their own events
 
-✅ Client registration to events with capacity validation
+### 👥 Client
 
-✅ Feedback system with moderation workflows
+* View available events
+* Register for upcoming events
+* Submit feedback
 
-✅ Supplier registration of services (e.g., catering, venue rental)
+### 🛠️ Moderator
 
-✅ Event category management by administrators
+* Review and delete inappropriate feedback
+* Assist Admin in comment moderation
 
-✅ Audit logging of critical operations for traceability
+### 🏢 Supplier
 
-📄 Documentation Overview
+* Submit service proposals (e.g., catering, venue)
+* Associate services with events
 
-This project includes:
+---
 
-UML and DFD diagrams (Level 1 and Level 2) for each main use case
+## 🧱 Architecture & Methodologies
 
-Aggregate and package structure based on DDD
+* **DDD (Domain-Driven Design):**
 
-STRIDE threat model and qualitative risk analysis
+  * Clear separation of aggregates, entities, and boundaries
+  * Organized package/module structure
 
-Security scripts and vulnerability documentation
+* **SSDLC (Secure Software Development Lifecycle):**
 
-🔐 Security Strategy
+  * Integrated security tools during development
+  * Audit logging and access control policies
 
-Security was implemented with a structured plan aligned to SSDLC principles:
+* **Diagrams Included:**
 
-✅ Types of Analysis
+  * UML class diagrams
+  * DFDs (Level 1 and Level 2)
+  * STRIDE threat model
 
-SAST(Static Application Security Testing) - Development - Bandit, Semgrep (via Docker) Goal: Identify flaws on the source code
+---
 
-SCA(Software Composition Analysis) - Development - pip-audit, Snyk Goal: Verify the used librarys
+## 🔐 Security Strategy Overview
 
-DAST(Dynamic Application Security Testing) - Post-deployment (local/staging) - OWASP ZAP Goal: Simulate a attack by an external hacker
+| Type     | Phase           | Tool(s)                  | Goal                                       |
+| -------- | --------------- | ------------------------ | ------------------------------------------ |
+| **SAST** | Development     | Bandit, Semgrep (Docker) | Detect code flaws and insecure practices   |
+| **SCA**  | Development     | pip-audit, Snyk          | Detect vulnerable dependencies             |
+| **DAST** | Post-deployment | OWASP ZAP                | Simulate external hacker behavior          |
+| **IAST** | Optional        | Contrast, Seeker         | Combine SAST + DAST for dynamic validation |
 
-IAST(Interactive Application Security Testing) - Optional (with automated tests) - Contrast, Seeker Goal: Combine static analysis with dinamic, usefull in apps with a lot of functional tests.
+## 🛠️ How to Run the System
 
-Example Vulnerability Documentation
+Make sure Docker and Git are installed. Run all commands from the project root.
 
-Vulnerability: Use of hardcoded password in login.py (line 14) Phase Detected: Development Type of Analysis: SAST Tool: Semgrep (Docker) Severity: High Mitigation: Replace hardcoded password with secure credential storage (e.g., environment variables or a secrets vault).
+### 1. Start Backend and Frontend
 
+```bash
+# Start FastAPI backend (exposes API at localhost:8000)
 uvicorn app.main:app --reload
-streamlit run streamlit_app/app.py
-streamlit run streamlit_app/admin.py
-python app/assign_role.py --email adminuser@gmail.com --role admin
 
-Correr os SAST E SCA
-pip install bandit
-pip install pip-audit
-snyk auth
-Docker tem de estar aberto
+# Start Streamlit UI frontend (default localhost:8501)
+streamlit run streamlit_app/app.py
+
+# Admin tools for role assignment and more
+streamlit run streamlit_app/admin.py
+```
+
+### 2. Assign Roles
+
+```bash
+# Assign Firebase roles manually:
+python app/assign_role.py --email user@example.com --role Event_manager
+```
+
+---
+
+## 🔒 Run Security Analysis Tools
+
+### Prerequisites
+
+```bash
+pip install bandit pip-audit snyk
+# Ensure Docker is running
 chmod +x run_sast.sh run_sca.sh
-./run_sast.ps1 && ./run_sca.ps1
-.\Security\Analysis\run_sast.ps1 (Docker ativo)
-.\Security\Analysis\run_sca.ps1
-Necessário ter o git instalado e correr sh Security/Analysis/run_sast.sh
+```
+
+### 3. Run SAST and SCA (Linux/macOS)
+
+```bash
+sh Security/Analysis/run_sast.sh && sh Security/Analysis/run_sca.sh
+```
+
+### 4. Run SAST and SCA (Windows PowerShell)
+
+```powershell
+.\Security\Analysis
+un_sast.ps1
+.\Security\Analysis
+un_sca.ps1
+```
+
+These scripts scan:
+
+* **SAST:** source code vulnerabilities with Bandit and Semgrep
+* **SCA:** dependencies using pip-audit and Snyk
+
+---
+
+## 📁 Project Structure Overview
+
+```
+├── app/
+│   ├── main.py               # FastAPI backend
+│   ├── assign_role.py        # Firebase role setter
+│   └── firebase_key.json     # Firebase Admin SDK
+│
+├── streamlit_app/
+│   ├── app.py                # Main Streamlit UI
+│   ├── admin.py              # Admin dashboard (optional)
+│   └── modules/              # Pages: events, categories, feedback
+│
+├── Security/
+│   └── Analysis/             # Scripts for SAST/SCA
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## 📌 Final Notes
+
+* Use environment variables to store sensitive data like Firebase API keys
+* Keep Firebase rules updated to ensure access control
+* Review audit logs periodically to detect anomalies
+* Regularly run the provided security scripts to keep dependencies and code secure
+
+---
 
