@@ -11,6 +11,6 @@ bandit
 pip-audit
 python-dotenv
 tornado>=6.5
-snyk
+#snyk
 dotenv
 pytest
