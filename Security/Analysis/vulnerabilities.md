@@ -117,37 +117,7 @@ Uso inadequado de try-except pode mascarar erros críticos, dificultando a dete�
 
 Uso de assert no código de produção pode levar a comportamentos inesperados quando otimizações do Python estiverem ativadas.
 
-## 2.3 Proteções de Endpoints e Autorização com Claims Personalizados
-
-A aplicação utiliza o Firebase Authentication com tokens JWT que contêm claims personalizados para indicar a role do utilizador (client, admin, event_manager, etc.).
-
-Definição de roles: via auth.set_custom_user_claims(uid, { "role": "admin" }) pelo backend/admin.
-
-Verificação: feita no backend ao validar o token JWT e extrair o campo role.
-
-Proteção de endpoints:
-
-@app.post("/events/create")
-async def create_event(..., user=Depends(verify_token)):
-    if user["role"] not in ["admin", "event_manager"]:
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-## 2.4 Melhoria na Gestão de Variáveis Sensíveis
-Chaves e URLs sensíveis como a FIREBASE_API_KEY passaram a ser guardadas num ficheiro .env.
-
-Utilização do pacote python-dotenv com load_dotenv() para carregar as variáveis.
-
-Criação do ficheiro .env.example para facilitar o partilhar seguro das configurações na equipa sem expor chaves reais.
-
-## 2.5 Outras Medidas de Segurança Aplicadas
-Medida	|   Estado
-Validação de tokens JWT     |	✅ Ativa e implementada no backend
-Middleware CORS	            |   ✅ Ativo para permitir chamadas seguras
-Ocultação de menus por role	|   ✅ Implementado na interface Streamlit
-Logs de atribuição de roles	|   ✅ Gravados em ficheiro admin_logs.csv
-Painel de gestão de roles	|   ✅ Acessível apenas a utilizadores admin
-
-## 2.6 Testes SCA (Software Composition Analysis)
+## 2.3 Testes SCA (Software Composition Analysis)
 Durante a análise de segurança das dependências externas do projeto, foram utilizados os seguintes scanners:
 
 - **Objetivo:** Detectar vulnerabilidades conhecidas nas bibliotecas Python usadas.
@@ -160,7 +130,7 @@ Durante a análise de segurança das dependências externas do projeto, foram ut
 
 - **Ação Recomendada:** Atualizar as bibliotecas para as versões sugeridas para mitigar vulnerabilidades conhecidas.
 
-### 2.6.1 Snyk
+### 2.3.1 Snyk
 
 Durante a análise de segurança das dependências com a ferramenta Snyk, foi identificada uma vulnerabilidade de alta severidade no pacote tornado na versão utilizada atualmente (6.4.2).
 
@@ -201,7 +171,7 @@ tornado==6.5.0
 
 Enquanto a atualização não é possível, pode ser aplicada uma mitigação bloqueando requisições com o header Content-Type: multipart/form-data em um proxy reverso ou firewall.
 
-## 2.6.2 Análise do Relatório Snyk - Tornado Vulnerabilidade Crítica
+## 2.3.2 Análise do Relatório Snyk - Tornado Vulnerabilidade Crítica
 
 - Pacote afetado: tornado 6.4.2
 - Identificador: SNYK-PYTHON-TORNADO-10176059
