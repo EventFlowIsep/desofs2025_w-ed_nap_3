@@ -4,6 +4,7 @@
 |------------|-------------------------------------------------------------------------------------------------|--------------|--------|
 | 2025-05-20 | Revisão de todos os testes de segurança com ferramentas SAST (Bandit, Semgrep)                  | Rafael       | 1.0    |
 | 2025-05-22 | Melhorias nos testes SCA de forma a obter um relatório comploeto do snyk                        | Rafael       | 2.0    |
+| 2025-05-25 | Testes finais antes do final sprint 1                                                           | Rafael       | 3.0    |
 
 # 🔐 Segurança na Aplicação EventFlow
 
@@ -212,3 +213,36 @@ Enquanto a atualização não é possível, pode ser aplicada uma mitigação bl
 
 **Atualização feita a:** 2025-05-22
 
+
+## 3.1 Validação Estática de Código (SAST) com Bandit
+
+### ⚠️ Alerta: B112 – Uso de try-except com continue
+- **Descrição:** A utilização do try-except com a instrução continue foi identificada no código. Esse padrão pode mascarar erros importantes, dificultando a detecção e correção de falhas no sistema.
+- **Risco:** Pode ocultar exceções críticas, prejudicando a análise de erros e a estabilidade da aplicação.
+- **Ficheiros afetados:** `main.py`
+
+### 🛠️ Correção Implementada
+
+A lógica de tratamento de exceções foi alterada para garantir que os erros sejam tratados de forma adequada e não sejam ignorados silenciosamente. O código que anteriormente usava try-except com continue foi refatorado para capturar exceções específicas e fornecer mensagens de erro mais claras.
+
+
+### ⚠️ Alerta: B101 – Uso de assert
+- **Descrição:** O uso de assert no código de produção pode levar a falhas quando o Python estiver compilando para bytecode otimizado, uma vez que os asserts são removidos nessas situações.
+- **Risco:** O uso de assert pode resultar em falhas invisíveis em ambientes de produção, onde as verificações de segurança são críticas.
+- **Ficheiros afetados:** `tests/admin_test.py`, `tests/client_test.py`
+
+### 🛠️ Correção Implementada
+O uso de assert foi substituído por verificações explícitas e tratamento adequado de erros para garantir que as falhas sejam capturadas mesmo em ambientes otimizados.
+
+```python
+# Antes:
+assert res.status_code == 200
+
+# Depois:
+if res.status_code != 200:
+    raise AssertionError(f"Expected status code 200, but got {res.status_code}")
+```
+
+---
+
+**Atualização feita a:** 2025-05-20

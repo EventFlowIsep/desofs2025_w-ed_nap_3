@@ -12,11 +12,11 @@ Write-Output "Running pip-audit → $pipFile"
 pip-audit > $pipFile
 
 # Snyk
-$i = 1
-do {
-    $snykFile = "$OutputDir/relatorio_snykv$i.json"
-    $i++
-} while (Test-Path $snykFile)
+#$i = 1
+#do {
+#    $snykFile = "$OutputDir/relatorio_snykv$i.json"
+#    $i++
+#} while (Test-Path $snykFile)
 
 # Detetar o requirements.txt
 $reqPath = Get-ChildItem -Path . -Recurse -Filter requirements.txt | Select-Object -First 1

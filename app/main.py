@@ -8,11 +8,14 @@ import datetime
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
+import logging
+from typing import List
+
+logging.basicConfig(level=logging.INFO)
 
 # Setup environment variable to load credentials
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "app/firebase_key.json"
 
-# Initialize Firebase Admin
 if not firebase_admin._apps:
     cred = credentials.Certificate("app/firebase_key.json")
     initialize_app(cred)
@@ -33,7 +36,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Middleware to validate token and role
 def verify_token(request: Request):
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
@@ -70,7 +72,6 @@ async def create_event(req: Request, user=Depends(verify_token)):
     if user["role"] not in ["Admin", "Event_manager"]:
         raise HTTPException(status_code=403, detail="Forbidden")
     
-    # Obtain existing categories
     categories_ref = db.collection("categories")
     categories_docs = categories_ref.stream()
     categories = []
@@ -86,7 +87,7 @@ async def create_event(req: Request, user=Depends(verify_token)):
     description = body.get("description", "")
     image_url = body.get("image_url", "")
     category = body.get("category")
-    
+
     if category not in [cat["name"] for cat in categories]:
         raise HTTPException(status_code=400, detail="Invalid category.")
     if not title or not date:
@@ -146,7 +147,7 @@ def verify(token: str = Depends(verify_token)):
 class EventUpdate(BaseModel):
     title: Optional[str]
     description: Optional[str]
-    date: Optional[str]  # Expecting YYYY-MM-DD
+    date: Optional[str]
     image_url: Optional[str]
     category: Optional[str]
 
@@ -190,8 +191,8 @@ def filter_events_by_date(start: str = Query(...), end: str = Query(...)):
             if start_date <= event_date <= end_date:
                 data["id"] = doc.id
                 filtered.append(data)
-        except:
-            continue
+        except Exception as e:
+            loggin.error(f"Error processing event {doc.id}: {e}")
 
     return filtered
 

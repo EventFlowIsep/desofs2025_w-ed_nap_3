@@ -29,7 +29,6 @@ categories_docs = categories_ref.stream()
 for doc in categories_docs:
     categorianome=doc.id
 
-# 🔐 Funções para obter os tokens de cada utilizador
 def get_token(email, password):
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={os.getenv('FIREBASE_API_KEY')}"
     payload = {
@@ -37,21 +36,20 @@ def get_token(email, password):
         "password": password,
         "returnSecureToken": True
     }
-    res = requests.post(url, json=payload)
+    res = requests.post(url, json=payload, timeout=10)
     if res.status_code == 200:
         time.sleep(0.5)
         return res.json()["idToken"]
     else:
         raise Exception("Login falhou: " + res.text)
 
-# 🔐 Fixtures para cada role
 @pytest.fixture(scope="session")
 def admin_token():
-    return get_token("adminuser@gmail.com", "1q2w3e4r5t6y")
+    return get_token("adminuser@gmail.com", os.getenv("ADMIN_CRED"))
 
 
 # -------------------------------
-# 👑 TESTES DO ADMINISTRADOR
+#           ADMIN TEST
 # -------------------------------
 
 def test_admin_create_event(admin_token):
@@ -64,20 +62,21 @@ def test_admin_create_event(admin_token):
         "category": categorianome
     }
     res = client.post("/events/create", json=data, headers=headers)
-    assert res.status_code == 200
-    assert "Event created successfully" in res.json()["message"]
+    assert res.status_code == 200, f"Expected 200 but got {res.status_code}"
+    response_data = res.json()
+    assert "Event created successfully" in response_data.get("message",""),"Event creation message not found"
 
 def test_admin_list_events(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
     res = client.get("/events", headers=headers)
-    assert res.status_code == 200
-    assert isinstance(res.json(), list)
+    assert res.status_code == 200, f"Expected 200 but got {res.status_code}"
+    response_data = res.json()
+    assert isinstance(response_data, list), "Response data is not a list"
 
 
 def test_admin_cancel_event(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
     
-    # Primeiro cria um evento para cancelar
     data = {
         "title": "Evento para Cancelar",
         "date": "2025-09-01",
@@ -88,20 +87,17 @@ def test_admin_cancel_event(admin_token):
     res_create = client.post("/events/create", json=data, headers=headers)
     assert res_create.status_code == 200
 
-    # Obter o ID do evento recém-criado
     res_list = client.get("/events", headers=headers)
     eventos = res_list.json()
     evento_id = next(e["id"] for e in eventos if e["title"] == "Evento para Cancelar")
 
-    # Cancelar o evento
     res_cancel = client.post(f"/events/{evento_id}/cancel", headers=headers)
-    assert res_cancel.status_code == 200
-    assert f"Event {evento_id} cancelled." in res_cancel.json()["message"]
+    assert res_cancel.status_code == 200, f"Expected 200 but got {res_cancel.status_code}"
+    assert f"Event {evento_id} cancelled." in res_cancel.json()["message"], "Event cancellation message not found"
 
 def test_admin_edit_event(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
 
-    # Criar evento
     data = {
         "title": "Evento a Editar",
         "date": "2025-10-01",
@@ -112,14 +108,12 @@ def test_admin_edit_event(admin_token):
     res = client.post("/events/create", json=data, headers=headers)
     assert res.status_code == 200
 
-    # Obter ID do evento recém-criado
     eventos = client.get("/events", headers=headers).json()
     evento_id = next(
         (e["id"] for e in eventos if e["title"] == "Evento a Editar" and e["description"] == "testeEliminar"),
         None
     )
 
-    # Atualizar o evento (respeitando o modelo EventUpdate)
     update_data = {
         "title": "Evento Editado",
         "description": "Descrição atualizada pelo Admin",
@@ -132,13 +126,12 @@ def test_admin_edit_event(admin_token):
         json=update_data,
         headers=headers
     )
-    assert res_update.status_code == 200
-    assert res_update.json()["msg"] == "Event updated successfully."
+    assert res_update.status_code == 200, f"Expected 200 but got {res_update.status_code}"
+    assert res_update.json()["msg"] == "Event updated successfully.", "Event update message not found"
 
 def test_admin_delete_comment(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
 
-    # 1. Criar evento
     event_data = {
         "title": "Evento com Comentário",
         "date": "2025-12-01",
@@ -149,11 +142,9 @@ def test_admin_delete_comment(admin_token):
     res_create = client.post("/events/create", json=event_data, headers=headers)
     assert res_create.status_code == 200
 
-    # 2. Obter ID do evento
     eventos = client.get("/events", headers=headers).json()
     evento_id = next(e["id"] for e in eventos if e["title"] == "Evento com Comentário")
 
-    # 3. Adicionar comentário
     comment = {
         "author": "Admin Tester",
         "text": "Comentário a remover",
@@ -162,7 +153,6 @@ def test_admin_delete_comment(admin_token):
     res_comment = client.post(f"/events/{evento_id}/comment", json=comment, headers=headers)
     assert res_comment.status_code == 200
 
-    # 4. Apagar comentário — usar data + headers
     headers["Content-Type"] = "application/json"
     res_delete = client.request(
     method="DELETE",
@@ -170,17 +160,19 @@ def test_admin_delete_comment(admin_token):
     headers=headers,
     data=json.dumps(comment))
 
+    assert res_delete.status_code == 200, f"Expected 200 but got {res_delete.status_code}"
+
 
 def test_admin_register_user_to_event(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
     res = client.get("/events", headers=headers)
-    assert res.status_code == 200
+    assert res.status_code == 200, f"Expected 200 but got {res.status_code}"
     events = res.json()
     assert events, "No events found"
     event_id = events[0]["id"]
     res = client.post(f"/events/{event_id}/register", headers=headers)
-    assert res.status_code == 200
-    assert "registered" in res.json()["msg"].lower()
+    assert res.status_code == 200, f"Expected 200 but got {res.status_code}"
+    assert "registered" in res.json()["msg"].lower(), "Registration message not found"
    
 
 def test_admin_create_category(admin_token):
@@ -190,17 +182,18 @@ def test_admin_create_category(admin_token):
         "description": "Criada para testes."
     }
     res = client.post("/categories", headers=headers, json=payload)
-    assert res.status_code == 200
-    assert "created" in res.json()["msg"].lower()
+    assert res.status_code == 200, f"Expected 200 but got {res.status_code}"
+    response_data = res.json()
+    assert "created" in response_data.get("msg", "").lower(), "Category creation message not found in response."
 
 
 def test_admin_list_categories(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
     res = client.get("/categories", headers=headers)
-    assert res.status_code == 200
+    assert res.status_code == 200, f"Expected 200 but got {res.status_code}"
     categories = res.json()
-    assert isinstance(categories, list)
+    assert isinstance(categories, list), "Response data is not a list of categories"
 
     
-teste =get_token("adminuser@gmail.com", "1q2w3e4r5t6y")
+teste =get_token("adminuser@gmail.com", os.getenv("ADMIN_CRED"))
 aa = test_admin_delete_comment(teste)

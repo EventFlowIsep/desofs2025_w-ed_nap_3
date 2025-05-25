@@ -1,0 +1,1194 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+
+<title>
+    Bandit Report
+</title>
+
+<style>
+
+html * {
+    font-family: "Arial", sans-serif;
+}
+
+pre {
+    font-family: "Monaco", monospace;
+}
+
+.bordered-box {
+    border: 1px solid black;
+    padding-top:.5em;
+    padding-bottom:.5em;
+    padding-left:1em;
+}
+
+.metrics-box {
+    font-size: 1.1em;
+    line-height: 130%;
+}
+
+.metrics-title {
+    font-size: 1.5em;
+    font-weight: 500;
+    margin-bottom: .25em;
+}
+
+.issue-description {
+    font-size: 1.3em;
+    font-weight: 500;
+}
+
+.candidate-issues {
+    margin-left: 2em;
+    border-left: solid 1px; LightGray;
+    padding-left: 5%;
+    margin-top: .2em;
+    margin-bottom: .2em;
+}
+
+.issue-block {
+    border: 1px solid LightGray;
+    padding-left: .5em;
+    padding-top: .5em;
+    padding-bottom: .5em;
+    margin-bottom: .5em;
+}
+
+.issue-sev-high {
+    background-color: Pink;
+}
+
+.issue-sev-medium {
+    background-color: NavajoWhite;
+}
+
+.issue-sev-low {
+    background-color: LightCyan;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="metrics">
+    <div class="metrics-box bordered-box">
+        <div class="metrics-title">
+            Metrics:<br>
+        </div>
+        Total lines of code: <span id="loc">1182</span><br>
+        Total lines skipped (#nosec): <span id="nosec">0</span>
+    </div>
+</div>
+
+
+
+
+<br>
+<div id="results">
+    
+<div id="issue-0">
+<div class="issue-block issue-sev-low">
+    <b>try_except_continue: </b> Try, Except, Continue detected.<br>
+    <b>Test ID:</b> B112<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\app\main.py" target="_blank">.\app\main.py</a><br>
+    <b>Line number: </b>190<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b112_try_except_continue.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b112_try_except_continue.html</a><br>
+
+<div class="code">
+<pre>
+189	                filtered.append(data)
+190	        except:
+191	            continue
+192	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-1">
+<div class="issue-block issue-sev-medium">
+    <b>request_without_timeout: </b> Call to requests without timeout<br>
+    <b>Test ID:</b> B113<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/400.html" target="_blank">CWE-400</a><br>
+    <b>File: </b><a href=".\security_tests\dast_tests.py" target="_blank">.\security_tests\dast_tests.py</a><br>
+    <b>Line number: </b>22<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html</a><br>
+
+<div class="code">
+<pre>
+21	try:
+22	    r = requests.post(f&quot;{BASE_URL}/accounts:signInWithPassword?key={FIREBASE_API_KEY}&quot;, json={
+23	        &quot;email&quot;: &quot;test@example.com&#x27; OR &#x27;1&#x27;=&#x27;1&quot;,
+24	        &quot;password&quot;: &quot;fakepass&quot;,
+25	        &quot;returnSecureToken&quot;: True
+26	    })
+27	    print_result(&quot;Login SQL Injection&quot;, r)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-2">
+<div class="issue-block issue-sev-medium">
+    <b>request_without_timeout: </b> Call to requests without timeout<br>
+    <b>Test ID:</b> B113<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/400.html" target="_blank">CWE-400</a><br>
+    <b>File: </b><a href=".\security_tests\dast_tests.py" target="_blank">.\security_tests\dast_tests.py</a><br>
+    <b>Line number: </b>34<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html</a><br>
+
+<div class="code">
+<pre>
+33	try:
+34	    r = requests.post(f&quot;{BASE_URL}/accounts:signInWithPassword?key={FIREBASE_API_KEY}&quot;, json={
+35	        &quot;email&quot;: &quot;&quot;,
+36	        &quot;password&quot;: &quot;123456&quot;,
+37	        &quot;returnSecureToken&quot;: True
+38	    })
+39	    print_result(&quot;Login Empty Email&quot;, r)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-3">
+<div class="issue-block issue-sev-medium">
+    <b>request_without_timeout: </b> Call to requests without timeout<br>
+    <b>Test ID:</b> B113<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/400.html" target="_blank">CWE-400</a><br>
+    <b>File: </b><a href=".\security_tests\dast_tests.py" target="_blank">.\security_tests\dast_tests.py</a><br>
+    <b>Line number: </b>46<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html</a><br>
+
+<div class="code">
+<pre>
+45	try:
+46	    r = requests.post(f&quot;{BASE_URL}/accounts:signUp?key={FIREBASE_API_KEY}&quot;, json={
+47	        &quot;email&quot;: &quot;&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;@test.com&quot;,
+48	        &quot;password&quot;: &quot;123456&quot;,
+49	        &quot;returnSecureToken&quot;: True
+50	    })
+51	    print_result(&quot;Register XSS Email&quot;, r)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-4">
+<div class="issue-block issue-sev-medium">
+    <b>request_without_timeout: </b> Call to requests without timeout<br>
+    <b>Test ID:</b> B113<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/400.html" target="_blank">CWE-400</a><br>
+    <b>File: </b><a href=".\security_tests\dast_tests.py" target="_blank">.\security_tests\dast_tests.py</a><br>
+    <b>Line number: </b>58<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html</a><br>
+
+<div class="code">
+<pre>
+57	try:
+58	    r = requests.post(f&quot;{BASE_URL}/accounts:signUp?key={FIREBASE_API_KEY}&quot;, json={
+59	        &quot;email&quot;: &quot;validuser@test.com&quot;,
+60	        &quot;password&quot;: &quot;12&quot;,
+61	        &quot;returnSecureToken&quot;: True
+62	    })
+63	    print_result(&quot;Register Short Password&quot;, r)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-5">
+<div class="issue-block issue-sev-medium">
+    <b>request_without_timeout: </b> Call to requests without timeout<br>
+    <b>Test ID:</b> B113<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/400.html" target="_blank">CWE-400</a><br>
+    <b>File: </b><a href=".\streamlit_app\app.py" target="_blank">.\streamlit_app\app.py</a><br>
+    <b>Line number: </b>130<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html</a><br>
+
+<div class="code">
+<pre>
+129	                        headers = {&quot;Authorization&quot;: f&quot;Bearer {st.session_state.token}&quot;}
+130	                        res = requests.post(f&quot;{API_URL}/events/create&quot;, json=payload, headers=headers)
+131	                        if res.status_code == 200:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-6">
+<div class="issue-block issue-sev-medium">
+    <b>request_without_timeout: </b> Call to requests without timeout<br>
+    <b>Test ID:</b> B113<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/400.html" target="_blank">CWE-400</a><br>
+    <b>File: </b><a href=".\streamlit_app\modules\create_category.py" target="_blank">.\streamlit_app\modules\create_category.py</a><br>
+    <b>Line number: </b>25<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html</a><br>
+
+<div class="code">
+<pre>
+24	                try:
+25	                    res = requests.post(f&quot;{API_URL}/categories&quot;, json=payload, headers=headers)
+26	                    if res.status_code == 200:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-7">
+<div class="issue-block issue-sev-medium">
+    <b>request_without_timeout: </b> Call to requests without timeout<br>
+    <b>Test ID:</b> B113<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/400.html" target="_blank">CWE-400</a><br>
+    <b>File: </b><a href=".\streamlit_app\modules\view_events.py" target="_blank">.\streamlit_app\modules\view_events.py</a><br>
+    <b>Line number: </b>75<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html</a><br>
+
+<div class="code">
+<pre>
+74	                                        }
+75	                                        del_res = requests.delete(f&quot;{API_URL}/events/{ev[&#x27;id&#x27;]}/comment&quot;, json=payload, headers=headers)
+76	                                        if del_res.status_code == 200:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-8">
+<div class="issue-block issue-sev-medium">
+    <b>request_without_timeout: </b> Call to requests without timeout<br>
+    <b>Test ID:</b> B113<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/400.html" target="_blank">CWE-400</a><br>
+    <b>File: </b><a href=".\streamlit_app\modules\view_events.py" target="_blank">.\streamlit_app\modules\view_events.py</a><br>
+    <b>Line number: </b>109<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html</a><br>
+
+<div class="code">
+<pre>
+108	                        elif st.button(&quot;📥 Register for this event&quot;, key=f&quot;register_{ev[&#x27;id&#x27;]}&quot;):
+109	                            reg_res = requests.post(f&quot;{API_URL}/events/{ev[&#x27;id&#x27;]}/register&quot;, headers=headers)
+110	                            if reg_res.status_code == 200:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-9">
+<div class="issue-block issue-sev-medium">
+    <b>request_without_timeout: </b> Call to requests without timeout<br>
+    <b>Test ID:</b> B113<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/400.html" target="_blank">CWE-400</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>39<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html</a><br>
+
+<div class="code">
+<pre>
+38	    }
+39	    res = requests.post(url, json=payload)
+40	    if res.status_code == 200:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-10">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>65<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+64	    res = client.post(&quot;/events/create&quot;, json=data, headers=headers)
+65	    assert res.status_code == 200
+66	    assert &quot;Event created successfully&quot; in res.json()[&quot;message&quot;]
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-11">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>66<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+65	    assert res.status_code == 200
+66	    assert &quot;Event created successfully&quot; in res.json()[&quot;message&quot;]
+67	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-12">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>71<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+70	    res = client.get(&quot;/events&quot;, headers=headers)
+71	    assert res.status_code == 200
+72	    assert isinstance(res.json(), list)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-13">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>72<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+71	    assert res.status_code == 200
+72	    assert isinstance(res.json(), list)
+73	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-14">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>86<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+85	    res_create = client.post(&quot;/events/create&quot;, json=data, headers=headers)
+86	    assert res_create.status_code == 200
+87	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-15">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>93<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+92	    res_cancel = client.post(f&quot;/events/{evento_id}/cancel&quot;, headers=headers)
+93	    assert res_cancel.status_code == 200
+94	    assert f&quot;Event {evento_id} cancelled.&quot; in res_cancel.json()[&quot;message&quot;]
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-16">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>94<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+93	    assert res_cancel.status_code == 200
+94	    assert f&quot;Event {evento_id} cancelled.&quot; in res_cancel.json()[&quot;message&quot;]
+95	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-17">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>107<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+106	    res = client.post(&quot;/events/create&quot;, json=data, headers=headers)
+107	    assert res.status_code == 200
+108	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-18">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>127<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+126	    )
+127	    assert res_update.status_code == 200
+128	    assert res_update.json()[&quot;msg&quot;] == &quot;Event updated successfully.&quot;
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-19">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>128<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+127	    assert res_update.status_code == 200
+128	    assert res_update.json()[&quot;msg&quot;] == &quot;Event updated successfully.&quot;
+129	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-20">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>141<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+140	    res_create = client.post(&quot;/events/create&quot;, json=event_data, headers=headers)
+141	    assert res_create.status_code == 200
+142	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-21">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>152<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+151	    res_comment = client.post(f&quot;/events/{evento_id}/comment&quot;, json=comment, headers=headers)
+152	    assert res_comment.status_code == 200
+153	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-22">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>165<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+164	    res = client.get(&quot;/events&quot;, headers=headers)
+165	    assert res.status_code == 200
+166	    events = res.json()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-23">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>167<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+166	    events = res.json()
+167	    assert events, &quot;No events found&quot;
+168	    event_id = events[0][&quot;id&quot;]
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-24">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>170<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+169	    res = client.post(f&quot;/events/{event_id}/register&quot;, headers=headers)
+170	    assert res.status_code == 200
+171	    assert &quot;registered&quot; in res.json()[&quot;msg&quot;].lower()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-25">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>171<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+170	    assert res.status_code == 200
+171	    assert &quot;registered&quot; in res.json()[&quot;msg&quot;].lower()
+172	   
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-26">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>181<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+180	    res = client.post(&quot;/categories&quot;, headers=headers, json=payload)
+181	    assert res.status_code == 200
+182	    assert &quot;created&quot; in res.json()[&quot;msg&quot;].lower()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-27">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>182<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+181	    assert res.status_code == 200
+182	    assert &quot;created&quot; in res.json()[&quot;msg&quot;].lower()
+183	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-28">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>188<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+187	    res = client.get(&quot;/categories&quot;, headers=headers)
+188	    assert res.status_code == 200
+189	    categories = res.json()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-29">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\admin_test.py" target="_blank">.\tests\admin_test.py</a><br>
+    <b>Line number: </b>190<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+189	    categories = res.json()
+190	    assert isinstance(categories, list)
+191	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-30">
+<div class="issue-block issue-sev-medium">
+    <b>request_without_timeout: </b> Call to requests without timeout<br>
+    <b>Test ID:</b> B113<br>
+    <b>Severity: </b>MEDIUM<br>
+    <b>Confidence: </b>LOW<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/400.html" target="_blank">CWE-400</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>41<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b113_request_without_timeout.html</a><br>
+
+<div class="code">
+<pre>
+40	    }
+41	    res = requests.post(url, json=payload)
+42	    if res.status_code == 200:
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-31">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>55<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+54	    res = client.get(&quot;/events&quot;, headers=headers)
+55	    assert res.status_code == 200
+56	    assert isinstance(res.json(), list)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-32">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>56<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+55	    assert res.status_code == 200
+56	    assert isinstance(res.json(), list)
+57	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-33">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>61<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+60	    res = client.get(&quot;/events/filter?start=2025-01-01&amp;end=2025-12-31&quot;, headers=headers)
+61	    assert res.status_code == 200
+62	    assert isinstance(res.json(), list)
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-34">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>62<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+61	    assert res.status_code == 200
+62	    assert isinstance(res.json(), list)
+63	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-35">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>74<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+73	    res = client.post(&quot;/events/create&quot;, json=data, headers=headers)
+74	    assert res.status_code == 403 
+75	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-36">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>80<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+79	    eventos = client.get(&quot;/events&quot;, headers=headers).json()
+80	    assert eventos, &quot;Precisas de pelo menos um evento criado&quot;
+81	    evento_id = eventos[0][&quot;id&quot;]
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-37">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>88<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+87	    res_comment = client.post(f&quot;/events/{evento_id}/comment&quot;, json=comment_data, headers=headers)
+88	    assert res_comment.status_code == 200
+89	    assert &quot;Comment added successfully&quot; in res_comment.json()[&quot;message&quot;]
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-38">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>89<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+88	    assert res_comment.status_code == 200
+89	    assert &quot;Comment added successfully&quot; in res_comment.json()[&quot;message&quot;]
+90	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-39">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>95<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+94	    res = client.get(&quot;/events&quot;, headers=headers)
+95	    assert res.status_code == 200
+96	    events = res.json()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-40">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>97<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+96	    events = res.json()
+97	    assert events, &quot;No events found&quot;
+98	    event_id = events[0][&quot;id&quot;]
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-41">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>100<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+99	    res = client.post(f&quot;/events/{event_id}/register&quot;, headers=headers)
+100	    assert res.status_code == 200
+101	    assert &quot;registered&quot; in res.json()[&quot;msg&quot;].lower()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-42">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>101<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+100	    assert res.status_code == 200
+101	    assert &quot;registered&quot; in res.json()[&quot;msg&quot;].lower()
+102	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-43">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>118<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+117	    res = client.get(&quot;/events&quot;, headers=headers)
+118	    assert res.status_code == 200
+119	    events = res.json()
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-44">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>120<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+119	    events = res.json()
+120	    assert events, &quot;No events available&quot;
+121	    event_id = events[0][&quot;id&quot;]
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-45">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>130<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+129	    post_res = client.post(f&quot;/events/{event_id}/comment&quot;, headers=headers, json=comment)
+130	    assert post_res.status_code == 200
+131	
+</pre>
+</div>
+
+
+</div>
+</div>
+
+<div id="issue-46">
+<div class="issue-block issue-sev-low">
+    <b>assert_used: </b> Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.<br>
+    <b>Test ID:</b> B101<br>
+    <b>Severity: </b>LOW<br>
+    <b>Confidence: </b>HIGH<br>
+    <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/703.html" target="_blank">CWE-703</a><br>
+    <b>File: </b><a href=".\tests\client_test.py" target="_blank">.\tests\client_test.py</a><br>
+    <b>Line number: </b>139<br>
+    <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html" target="_blank">https://bandit.readthedocs.io/en/1.8.3/plugins/b101_assert_used.html</a><br>
+
+<div class="code">
+<pre>
+138	
+139	    assert delete_res.status_code == 403
+</pre>
+</div>
+
+
+</div>
+</div>
+
+</div>
+
+</body>
+</html>
