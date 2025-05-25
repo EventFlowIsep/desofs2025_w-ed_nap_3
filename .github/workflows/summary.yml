@@ -1,8 +1,13 @@
 name: Summarize new issues
 
 on:
-  issues:
-    types: [opened]
+    push:
+        branches: [main, "feature/*"]
+    pull_request:
+        branches: [main, "feature/*"]
+    workflow_dispatch:
+    issues:
+        types: [opened]
 
 jobs:
   summary:
