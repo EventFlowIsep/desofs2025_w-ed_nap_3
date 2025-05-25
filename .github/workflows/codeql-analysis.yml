@@ -1,0 +1,56 @@
+name: "CodeQL Code-Scanning"
+
+on:
+  push:
+    branches: [ "main", "feature/*" ]
+  pull_request:
+    branches: [ "main", "feature/*" ]
+  schedule:
+    - cron: '0 0 * * 1'   # semanal às 00:00 de segunda (ajustável)
+  workflow_dispatch:
+
+jobs:
+  codeql-scan:
+    name: Analyze Code (CodeQL)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write    # necessário para upload de resultados CodeQL
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+
+      # (Para projetos Python, normalmente não é necessário build/autobuild)
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  dep-scan:
+    name: Dependency Scan (Safety)
+    runs-on: ubuntu-latest
+    needs: codeql-scan
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Install Safety
+        run: pip install safety
+
+      - name: Audit Dependencies
+        run: |
+          safety check -r requirements.txt -f text -o safety_report.txt
+          # Não falha o job automaticamente para apenas reportar
+          echo "Resultado SCA:"
+          cat safety_report.txt
+
+      - name: Upload Safety Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: safety-weekly-report
+          path: safety_report.txt
