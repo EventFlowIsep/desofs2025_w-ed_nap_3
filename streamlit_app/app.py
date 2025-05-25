@@ -91,7 +91,7 @@ if st.session_state.page == "main":
         st.sidebar.markdown(f"🧑 Logged in as: **{st.session_state.user_role.capitalize()}**")
     
     if "token" in st.session_state and st.session_state.token:
-    # 📋 Menu based on role
+    # Menu based on role
         menu_options = ["View Events"]  # all have access
 
         if st.session_state.user_role in ["Admin", "Event_manager"]:
@@ -103,7 +103,7 @@ if st.session_state.page == "main":
 
         selected = st.sidebar.selectbox("Choose an action", menu_options)
 
-    # 🔁 Routing
+    # Routing
         if selected == "View Events":
             view_events.show()
 
@@ -111,17 +111,13 @@ if st.session_state.page == "main":
             if st.session_state.user_role in ["Admin", "Event_manager"]:
                 st.subheader("Create Event")
 
-                # Campos para o evento
                 st.session_state.title = st.text_input("Event Title", st.session_state.title)
                 st.session_state.date = st.date_input("Event Date", st.session_state.date)
                 st.session_state.description = st.text_area("Event Description", st.session_state.description)
                 
-                # Seleção da categoria
                 categories = list_categories() 
                 selected_category = st.selectbox("Select Category", categories)
                 
-
-                # Botão para submeter o evento
                 if st.button("Create Event"):
                     payload = {
                         "title": st.session_state.title,
@@ -131,7 +127,7 @@ if st.session_state.page == "main":
                     }
                     try:
                         headers = {"Authorization": f"Bearer {st.session_state.token}"}
-                        res = requests.post(f"{API_URL}/events/create", json=payload, headers=headers)
+                        res = requests.post(f"{API_URL}/events/create", json=payload, headers=headers, timeout=10)
                         if res.status_code == 200:
                             st.success("✅ Event created successfully.")
                             reset_form()
