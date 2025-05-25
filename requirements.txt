@@ -14,3 +14,4 @@ tornado>=6.5
 #snyk
 dotenv
 pytest
+httpx
