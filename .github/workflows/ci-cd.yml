@@ -1,0 +1,110 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "feature/*" ]
+  pull_request:
+    branches: [ "main", "feature/*" ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 1'  # Executa toda segunda-feira à meia-noite
+jobs:
+  build_test_and_analyze:
+    name: Build, Test, SAST & SCA
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛎️ Checkout código
+        uses: actions/checkout@v3
+
+      - name: 📥 Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Cache das dependências pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: 📦 Instalar dependências do projeto
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+
+      - name: 📦 Instalar dependências de teste/segurança
+        run: |
+          pip install pytest pytest-cov
+          pip install bandit pip-audit
+
+      - name: 🧪 Executar testes unitários (Pytest) com cobertura
+        run: |
+          pytest --cov=app --cov=streamlit_app --cov-report=term-missing --cov-report=xml:coverage.xml
+        env:
+          PYTHONPATH: "${{ github.workspace }}/app:${{ github.workspace }}/streamlit_app"  # se necessário, para resolver imports
+
+      - name: 📊 Upload do relatório de cobertura
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cobertura-teste
+          path: coverage.xml
+
+      - name: 🔐 SAST - Análise estática com Bandit
+        run: |
+          # Bandit analisa recursivamente o código em "app" e "streamlit_app", excluindo testes e scripts de segurança
+          bandit -r . -x security_tests,tests,Deliverables -f json -o bandit-report.json || true
+        # `|| true` para garantir que o passo continue mesmo se Bandit encontrar issues (evitando falha imediata sem coletar artefatos).
+      
+      - name: 📋 Upload do relatório Bandit (SAST)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+      - name: 📦 SCA - Análise de dependências com pip-audit
+        run: |
+          # Executa o pip-audit com base no requirements.txt
+          pip-audit -r requirements.txt -f json -o deps-audit-report.json
+        # Em caso de vulnerabilidades encontradas, pip-audit sairá com código de erro, falhando o job.
+        # Isso garante detecção imediata de falhas de segurança em dependências conhecidas:contentReference[oaicite:2]{index=2}.
+
+      - name: 📋 Upload do relatório de dependências (SCA)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deps-audit-report
+          path: deps-audit-report.json
+
+  deploy_and_dast:
+    name: Staging & DAST
+    runs-on: ubuntu-latest
+    needs: [build_test_and_analyze]   # Só roda este job se build/test tiver tido sucesso
+
+    steps:
+      - name: 🛎️ Checkout código
+        uses: actions/checkout@v3
+
+      - name: 🐳 Construir e subir containers (Staging)
+        run: |
+          docker compose up -d --build
+          echo "Aguardando containers subirem..."
+          sleep 10  # espera 10s para garantir que serviços estejam prontos (pode ajustar ou usar healthcheck)
+
+      - name: 🔍 Executar testes dinâmicos de segurança (DAST)
+        run: |
+          # Executa o script de teste dinâmico de segurança. 
+          # Presume-se que 'run_dast.sh' retorne código de saída 0 se tudo ok, ou !=0 se vulnerabilidades críticas forem encontradas.
+          bash security_tests/run_dast.sh
+
+      - name: 📋 Upload do relatório DAST
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dast-report
+          path: security_tests/**/*dast_report*.*   # ajustado para o nome/format do relatório gerado pelo script
+
+      - name: 📦 Derrubar ambiente de staging
+        if: always()
+        run: docker compose down

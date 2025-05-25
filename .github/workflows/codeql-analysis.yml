@@ -1,53 +1,69 @@
-name: "CodeQL Code-Scanning"
+name: Security Scan (CodeQL + SCA)
 
 on:
+  # Agendado semanal (domingo à meia-noite)
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch:    # Permite disparo manual pelo UI, se desejado
   push:
-    branches: [ "main", "feature/*" ]
+    branches: [ "main", "feature/*" ]           # CodeQL também roda em pushes na branch principal
   pull_request:
     branches: [ "main", "feature/*" ]
-  schedule:
-    - cron: '0 0 * * 1'
-  workflow_dispatch:
+               # e em PRs abertos contra a principal
 
 jobs:
-  codeql-scan:
-    name: Analyze Code (CodeQL)
+  codeql:
+    name: CodeQL Static Analysis
     runs-on: ubuntu-latest
     permissions:
-      security-events: write
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+      security-events: write   # necessária para subir resultados de code scanning
+      contents: read
 
-      - name: Initialize CodeQL
+    steps:
+      - name: 🛎️ Checkout código
+        uses: actions/checkout@v3
+
+      - name: 📥 Setup CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: python
+          languages: python         # Analisa código Python
+          # Caso queira incluir outras linguagens, adicione aqui. Ex: python, javascript
 
-      - name: Perform CodeQL Analysis
+      - name: 🏗️ Build (dependências para CodeQL)
+        run: |
+          # Instala as dependências do projeto para melhor análise (opcional, mas recomendado)
+          python -m pip install -r requirements.txt
+
+      - name: 🔎 CodeQL - Analisar código
         uses: github/codeql-action/analyze@v3
+        with:
+          category: "CodeQL-Scan"  # Nomeia a categoria de alertas de Code Scanning
 
-  dep-scan:
-    name: Dependency Scan (Safety)
+  dep_vulns:
+    name: Weekly Dependency Audit
     runs-on: ubuntu-latest
-    needs: codeql-scan
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # ^ Executa este job apenas em execuções agendadas ou manuais (evita duplicar SCA em cada push, já que a pipeline principal cuida disso em pushes)
     steps:
-      - name: Checkout source
+      - name: 🛎️ Checkout código
         uses: actions/checkout@v3
 
-      - name: Install Safety
-        run: pip install safety
-
-      - name: Audit Dependencies
-        run: |
-          safety check -r requirements.txt -f text -o safety_report.txt
-          echo "Resultado SCA:"
-          cat safety_report.txt
-
-      - name: Upload Safety Report
-        uses: actions/upload-artifact@v3
+      - name: 📥 Configurar Python
+        uses: actions/setup-python@v4
         with:
-          name: safety-weekly-report
-          path: safety_report.txt
+          python-version: "3.11"
+
+      - name: 📦 Instalar pip-audit
+        run: pip install pip-audit
+
+      - name: 🔎 Verificar vulnerabilidades em dependências (pip-audit)
+        run: |
+          pip-audit -r requirements.txt > deps-weekly.txt
+          # Não usamos '-f json' aqui apenas para simplificar leitura do log/arquivo de texto
+          # (poderia usar JSON similar à pipeline principal, se preferir)
+
+      - name: 📋 Upload do relatório de dependências (semanal)
+        uses: actions/upload-artifact@v4
+        with:
+          name: deps-weekly-audit
+          path: deps-weekly.txt
