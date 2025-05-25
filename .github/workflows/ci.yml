@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -57,33 +57,31 @@ jobs:
             safety_report.txt
 
   deploy-staging:
-    name: Deploy to Staging and DAST
+    name: Deploy to Staging with Docker Compose & DAST
     needs: build-test
-    runs-on: ubuntu-latest  # (Opcional: URL do ambiente de staging, se aplicável)
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Compose
+        run: |
+          docker-compose --version
 
-      - name: Build Docker Image (Staging)
-        run: docker build -t eventflow-staging:latest .
+      - name: Build and start all services
+        run: docker-compose up -d --build
 
-      - name: Run Container (Staging)
-        run: docker run -d --name eventflow_staging -p 8000:8000 eventflow-staging:latest
+      - name: Wait for services to be ready
+        run: sleep 15
 
-      - name: Wait for service startup
-        run: sleep 10
+      - name: Install dependencies for DAST
+        run: pip install requests
 
-      - name: Run DAST Security Tests
+      - name: Run DAST Python tests
         env:
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          python security_tests/dast_tests.py
+        run: python security_tests/dast_tests.py
 
-      - name: Stop and Remove Container
+      - name: Stop and clean up containers
         if: ${{ always() }}
-        run: docker stop eventflow_staging && docker rm eventflow_staging
+        run: docker-compose down

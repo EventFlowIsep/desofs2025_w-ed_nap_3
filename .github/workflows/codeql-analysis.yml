@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ "main", "feature/*" ]
   schedule:
-    - cron: '0 0 * * 1'   # semanal às 00:00 de segunda (ajustável)
+    - cron: '0 0 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -14,7 +14,7 @@ jobs:
     name: Analyze Code (CodeQL)
     runs-on: ubuntu-latest
     permissions:
-      security-events: write    # necessário para upload de resultados CodeQL
+      security-events: write
     steps:
       - name: Checkout source
         uses: actions/checkout@v3
@@ -25,8 +25,6 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: python
-
-      # (Para projetos Python, normalmente não é necessário build/autobuild)
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -45,7 +43,6 @@ jobs:
       - name: Audit Dependencies
         run: |
           safety check -r requirements.txt -f text -o safety_report.txt
-          # Não falha o job automaticamente para apenas reportar
           echo "Resultado SCA:"
           cat safety_report.txt
 
