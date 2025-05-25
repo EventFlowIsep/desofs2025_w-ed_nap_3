@@ -18,7 +18,7 @@ pip-audit > $pipFile
 #    $i++
 #} while (Test-Path $snykFile)
 
-# Detetar o requirements.txt
+# Detect requirements.txt
 $reqPath = Get-ChildItem -Path . -Recurse -Filter requirements.txt | Select-Object -First 1
 if ($reqPath) {
     Write-Output "Running Snyk on $($reqPath.FullName) → $snykFile"

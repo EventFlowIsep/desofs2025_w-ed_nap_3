@@ -15,7 +15,6 @@ def show():
 
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
 
-    # Verifica e armazena a role do utilizador
     if "user_role" not in st.session_state or not st.session_state.user_role:
         try:
             res = requests.get(f"{API_URL}/verify-token", headers=headers, timeout=DEFAULT_TIMEOUT)

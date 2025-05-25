@@ -2,7 +2,6 @@ import firebase_admin
 from firebase_admin import credentials, auth
 from fastapi import HTTPException
 
-# Initialize Firebase App
 cred = credentials.Certificate("app/firebase_key.json")
 firebase_admin.initialize_app(cred)
 

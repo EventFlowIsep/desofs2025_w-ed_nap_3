@@ -20,7 +20,6 @@ ROLE_CHOICES = {
 load_dotenv()
 FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
 
-# Initialize Firebase Admin
 if not firebase_admin._apps:
     cred = credentials.Certificate("app/firebase_key.json")
     initialize_app(cred)

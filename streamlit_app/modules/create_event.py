@@ -14,7 +14,6 @@ def show():
 
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
 
-    # Verificar role do utilizador
     if "user_role" not in st.session_state or not st.session_state.user_role:
         try:
             res = requests.get(f"{API_URL}/verify-token", headers=headers, timeout=DEFAULT_TIMEOUT)
@@ -27,7 +26,6 @@ def show():
         st.warning("❌ You do not have permission to create events.")
         return
 
-    # Buscar categorias disponíveis
     try:
         cat_res = requests.get(f"{API_URL}/categories", headers=headers, timeout=DEFAULT_TIMEOUT)
         if cat_res.status_code == 200:

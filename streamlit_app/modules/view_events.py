@@ -15,7 +15,6 @@ def show():
 
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
 
-    # 🔍 Filter section (by start date only)
     with st.expander("🔍 Filter Events"):
         start_date = st.date_input("Show events starting from:", value=date.today(), key="start_date_filter")
         exclude_cancelled = st.checkbox("Exclude cancelled events", value=True, key="cancelled_filter")
