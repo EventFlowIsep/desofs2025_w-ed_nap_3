@@ -10,6 +10,8 @@ from firebase_admin import credentials, auth, initialize_app
 from google.cloud import firestore
 import firebase_admin
 import time
+import datetime
+import json
 
 load_dotenv()
 
@@ -90,4 +92,54 @@ def test_client_comment_event(client_token):
     assert "Comment added successfully" in res_comment.json()["message"]
 
 
+def test_client_register_user_to_event(client_token):
+    headers = {"Authorization": f"Bearer {client_token}"}
+    res = client.get("/events", headers=headers)
+    assert res.status_code == 200
+    events = res.json()
+    assert events, "No events found"
+    event_id = events[0]["id"]
+    res = client.post(f"/events/{event_id}/register", headers=headers)
+    assert res.status_code == 200
+    assert "registered" in res.json()["msg"].lower()
 
+
+import datetime
+import pytest
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
+
+def test_event_manager_cannot_delete_comment(client_token):
+    headers = {
+        "Authorization": f"Bearer {client_token}",
+        "Content-Type": "application/json"
+    }
+
+    # Obter eventos
+    res = client.get("/events", headers=headers)
+    assert res.status_code == 200
+    events = res.json()
+    assert events, "No events available"
+    event_id = events[0]["id"]
+
+    # Criar comentário
+    comment = {
+        "author": "testuser@gmail.com",
+        "text": "This is a comment",
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    }
+
+    post_res = client.post(f"/events/{event_id}/comment", headers=headers, json=comment)
+    assert post_res.status_code == 200
+
+    # Tentar apagar comentário com método DELETE (com data serializada manualmente)
+    delete_res = client.request(
+        method="DELETE",
+        url=f"/events/{event_id}/comment",
+        headers=headers,
+        data=json.dumps(comment)
+    )
+
+    assert delete_res.status_code == 403  # Esperado: sem permissão

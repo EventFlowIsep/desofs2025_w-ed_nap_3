@@ -171,7 +171,36 @@ def test_admin_delete_comment(admin_token):
     data=json.dumps(comment))
 
 
+def test_admin_register_user_to_event(admin_token):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    res = client.get("/events", headers=headers)
+    assert res.status_code == 200
+    events = res.json()
+    assert events, "No events found"
+    event_id = events[0]["id"]
+    res = client.post(f"/events/{event_id}/register", headers=headers)
+    assert res.status_code == 200
+    assert "registered" in res.json()["msg"].lower()
    
 
+def test_admin_create_category(admin_token):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    payload = {
+        "name": "Categoria Teste",
+        "description": "Criada para testes."
+    }
+    res = client.post("/categories", headers=headers, json=payload)
+    assert res.status_code == 200
+    assert "created" in res.json()["msg"].lower()
+
+
+def test_admin_list_categories(admin_token):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    res = client.get("/categories", headers=headers)
+    assert res.status_code == 200
+    categories = res.json()
+    assert isinstance(categories, list)
+
+    
 teste =get_token("adminuser@gmail.com", "1q2w3e4r5t6y")
 aa = test_admin_delete_comment(teste)
