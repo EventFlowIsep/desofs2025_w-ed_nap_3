@@ -17,19 +17,19 @@ jobs:
       security-events: write    # necessário para upload de resultados CodeQL
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v2
         with:
           languages: python
 
       # (Para projetos Python, normalmente não é necessário build/autobuild)
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v2
 
   dep-scan:
     name: Dependency Scan (Safety)
@@ -37,7 +37,7 @@ jobs:
     needs: codeql-scan
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: Install Safety
         run: pip install safety
@@ -50,7 +50,7 @@ jobs:
           cat safety_report.txt
 
       - name: Upload Safety Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: safety-weekly-report
           path: safety_report.txt
