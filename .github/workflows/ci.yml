@@ -29,7 +29,7 @@ jobs:
       - name: Run Pytest
         run: |
           pip install pytest
-          pytest tests/
+          pytest tests/*
 
       - name: Run Bandit (SAST)
         continue-on-error: true
