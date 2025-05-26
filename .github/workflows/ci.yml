@@ -26,6 +26,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      #- name: Run Pytest
+      #  run: |
+      #    pip install pytest
+      #    pytest tests/
+
       - name: Run Bandit (SAST)
         continue-on-error: true
         run: |
