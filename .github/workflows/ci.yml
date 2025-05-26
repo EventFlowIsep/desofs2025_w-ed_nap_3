@@ -26,10 +26,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      #- name: Run Pytest
-      #  run: |
-      #    pip install pytest
-      #    pytest tests/
+      - name: Recriar firebase_key.json a partir do segredo
+        run: |
+          mkdir -p app
+          echo "${{ secrets.FIREBASE_KEY_JSON }}" > app/firebase_key.json
+
+      - name: Run Pytest
+        run: |
+          pip install pytest
+          pytest tests/
 
 
       - name: Run Bandit (SAST)
