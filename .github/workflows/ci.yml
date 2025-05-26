@@ -29,7 +29,7 @@ jobs:
       - name: Recriar firebase_key.json a partir do segredo
         run: |
           mkdir -p app
-          echo "${{ secrets.FIREBASE_KEY_JSON }}" > app/firebase_key.json
+          echo "${{ secrets.FIREBASE_KEY_JSON_BASE64 }}" > app/firebase_key.json
 
       - name: Run Pytest
         run: |
