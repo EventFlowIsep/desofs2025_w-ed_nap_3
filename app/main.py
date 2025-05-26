@@ -192,7 +192,7 @@ def filter_events_by_date(start: str = Query(...), end: str = Query(...)):
                 data["id"] = doc.id
                 filtered.append(data)
         except Exception as e:
-            loggin.error(f"Error processing event {doc.id}: {e}")
+            logging.error(f"Error processing event {doc.id}: {e}")
 
     return filtered
 
