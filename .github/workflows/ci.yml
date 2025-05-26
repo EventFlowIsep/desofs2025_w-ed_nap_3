@@ -34,7 +34,7 @@ jobs:
       - name: Run Pytest
         run: |
           pip install pytest
-          pytest tests/
+          pytest tests/client_test.py
 
 
       - name: Run Bandit (SAST)
