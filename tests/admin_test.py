@@ -59,12 +59,13 @@ def test_admin_create_event(admin_token):
         "date": "2025-07-01",
         "description": "Criado por Admin",
         "image_url": "",
-        "category": categorianome
+        "category": "Categoria Teste"
     }
     res = client.post("/events/create", json=data, headers=headers)
     assert res.status_code == 200, f"Expected 200 but got {res.status_code}"
     response_data = res.json()
-    assert "Event created successfully" in response_data.get("message",""),"Event creation message not found"
+    assert "Event created successfully" in response_data.get("message", ""), "Event creation message not found"
+
 
 def test_admin_list_events(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
@@ -76,13 +77,12 @@ def test_admin_list_events(admin_token):
 
 def test_admin_cancel_event(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
-    
     data = {
         "title": "Evento para Cancelar",
         "date": "2025-09-01",
         "description": "Este evento será cancelado",
         "image_url": "",
-        "category": categorianome
+        "category": "Categoria Teste"
     }
     res_create = client.post("/events/create", json=data, headers=headers)
     assert res_create.status_code == 200
@@ -95,72 +95,89 @@ def test_admin_cancel_event(admin_token):
     assert res_cancel.status_code == 200, f"Expected 200 but got {res_cancel.status_code}"
     assert f"Event {evento_id} cancelled." in res_cancel.json()["message"], "Event cancellation message not found"
 
+
 def test_admin_edit_event(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
-
     data = {
         "title": "Evento a Editar",
         "date": "2025-10-01",
         "description": "testeEliminar",
         "image_url": "",
-        "category": categorianome
+        "category": "Categoria Teste"
     }
     res = client.post("/events/create", json=data, headers=headers)
     assert res.status_code == 200
 
     eventos = client.get("/events", headers=headers).json()
-    evento_id = next(
-        (e["id"] for e in eventos if e["title"] == "Evento a Editar" and e["description"] == "testeEliminar"),
-        None
-    )
+    evento_id = next((e["id"] for e in eventos if e["title"] == "Evento a Editar"), None)
+    assert evento_id is not None, "Evento não encontrado"
 
     update_data = {
         "title": "Evento Editado",
         "description": "Descrição atualizada pelo Admin",
         "date": "2025-10-01",
         "image_url": "",
-        "category": categorianome
+        "category": "Categoria Teste"
     }
-    res_update = client.put(
-        f"/events/{evento_id}",
-        json=update_data,
-        headers=headers
-    )
+    res_update = client.put(f"/events/{evento_id}", json=update_data, headers=headers)
     assert res_update.status_code == 200, f"Expected 200 but got {res_update.status_code}"
     assert res_update.json()["msg"] == "Event updated successfully.", "Event update message not found"
+
+
+
 
 def test_admin_delete_comment(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
 
+    # Criar categoria se necessário
+    category_name = "Categoria Teste"
+    client.post("/categories", json={"name": category_name, "description": "para teste"}, headers=headers)
+
+    # Criar evento
     event_data = {
         "title": "Evento com Comentário",
         "date": "2025-12-01",
         "description": "Evento para teste de delete de comentário",
         "image_url": "",
-        "category": categorianome
+        "category": category_name
     }
     res_create = client.post("/events/create", json=event_data, headers=headers)
     assert res_create.status_code == 200
 
+    # Obter ID do evento
     eventos = client.get("/events", headers=headers).json()
     evento_id = next(e["id"] for e in eventos if e["title"] == "Evento com Comentário")
 
-    comment = {
+    # Criar comentário
+    comment_text = "Comentário a remover"
+    comment_payload = {
         "author": "Admin Tester",
-        "text": "Comentário a remover",
-        "timestamp": datetime.datetime.utcnow().replace(microsecond=0).isoformat()
+        "text": comment_text,
+        "timestamp": datetime.datetime.utcnow().isoformat()
     }
-    res_comment = client.post(f"/events/{evento_id}/comment", json=comment, headers=headers)
+    res_comment = client.post(f"/events/{evento_id}/comment", json=comment_payload, headers=headers)
     assert res_comment.status_code == 200
 
-    headers["Content-Type"] = "application/json"
-    res_delete = client.request(
-    method="DELETE",
-    url=f"/events/{evento_id}/comment",
-    headers=headers,
-    data=json.dumps(comment))
+    # 💤 Esperar um pouco para garantir que Firestore já gravou
+    time.sleep(1)
 
-    assert res_delete.status_code == 200, f"Expected 200 but got {res_delete.status_code}"
+    # Ir buscar o evento para obter o comentário real
+    res_event = client.get("/events", headers=headers)
+    assert res_event.status_code == 200
+    evento = next(e for e in res_event.json() if e["id"] == evento_id)
+
+    # Procurar o comentário com o texto que sabemos
+    real_comment = next(c for c in evento["comments"] if c["text"] == comment_text)
+
+    # Apagar comentário com base no que foi realmente guardado
+    res_delete = client.request(
+        method="DELETE",
+        url=f"/events/{evento_id}/comment",
+        headers={**headers, "Content-Type": "application/json"},
+        data=json.dumps(real_comment)
+    )
+    assert res_delete.status_code == 200, f"Esperado 200, mas obtido {res_delete.status_code}"
+
 
 
 def test_admin_register_user_to_event(admin_token):
