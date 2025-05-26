@@ -39,8 +39,7 @@ jobs:
       - name: Run Pytest
         run: |
           pip install pytest
-          pytest --cov=app --cov-report=html tests/
-
+          pytest tests/
 
       - name: Run Bandit (SAST)
         continue-on-error: true
