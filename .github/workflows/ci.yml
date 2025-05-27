@@ -25,12 +25,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Recriar firebase_key.json a partir do segredo
+      - name: recreate firebase_key.json
         run: |
           mkdir -p app
           echo "${{ secrets.FIREBASE_KEY_JSON_BASE64 }}" | base64 --decode > app/firebase_key.json
 
-      - name: Exportar variáveis de ambiente para os testes
+      - name: Export environment variables
         run: |
           echo "FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> $GITHUB_ENV
           echo "ADMIN_CRED=${{ secrets.ADMIN_CRED }}" >> $GITHUB_ENV

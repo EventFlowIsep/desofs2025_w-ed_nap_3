@@ -1,20 +1,20 @@
-# Imagem base oficial do Python
+# Oficial Python image as a base
 FROM python:3.10-slim
 
-# Define o diretório de trabalho dentro do contêiner
+# Define the Directory of the application
 WORKDIR /app
 
-# Copia os arquivos de dependências
-COPY requirements.txt .
+# Copy dependencies file
+COPY ../requirements.txt .
 
-# Instala as dependências
+# Install system dependencies for Streamlit
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia o restante do código da aplicação
+# Copy the rest of the application code
 COPY . .
 
-# Expõe a porta que o Uvicorn usará
+# Expose port for Streamlit
 EXPOSE 8000
 
-# Comando para iniciar o servidor Uvicorn
+# Comand for starting uvicorn server
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
