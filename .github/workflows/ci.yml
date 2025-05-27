@@ -68,7 +68,7 @@ jobs:
 
       - name: Build and run services with Docker Compose
         run: |
-          docker-compose -f docker-compose.yml up -d --build
+          docker compose -f docker-compose.yml up -d --build
 
   dast-test:
     name: DAST - Custom Security Scan
