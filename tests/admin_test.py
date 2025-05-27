@@ -129,11 +129,9 @@ def test_admin_edit_event(admin_token):
 def test_admin_delete_comment(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
 
-    # Criar categoria se necessário
     category_name = "Categoria Teste"
     client.post("/categories", json={"name": category_name, "description": "para teste"}, headers=headers)
 
-    # Criar evento
     event_data = {
         "title": "Evento com Comentário",
         "date": "2025-12-01",
@@ -144,11 +142,9 @@ def test_admin_delete_comment(admin_token):
     res_create = client.post("/events/create", json=event_data, headers=headers)
     assert res_create.status_code == 200
 
-    # Obter ID do evento
     eventos = client.get("/events", headers=headers).json()
     evento_id = next(e["id"] for e in eventos if e["title"] == "Evento com Comentário")
 
-    # Criar comentário
     comment_text = "Comentário a remover"
     comment_payload = {
         "author": "Admin Tester",
@@ -158,18 +154,14 @@ def test_admin_delete_comment(admin_token):
     res_comment = client.post(f"/events/{evento_id}/comment", json=comment_payload, headers=headers)
     assert res_comment.status_code == 200
 
-    # 💤 Esperar um pouco para garantir que Firestore já gravou
     time.sleep(1)
 
-    # Ir buscar o evento para obter o comentário real
     res_event = client.get("/events", headers=headers)
     assert res_event.status_code == 200
     evento = next(e for e in res_event.json() if e["id"] == evento_id)
 
-    # Procurar o comentário com o texto que sabemos
     real_comment = next(c for c in evento["comments"] if c["text"] == comment_text)
 
-    # Apagar comentário com base no que foi realmente guardado
     res_delete = client.request(
         method="DELETE",
         url=f"/events/{evento_id}/comment",
