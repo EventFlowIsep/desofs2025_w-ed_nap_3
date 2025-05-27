@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - FIREBASE_API_KEY=${FIREBASE_API_KEY}
+      - ADMIN_CRED=${ADMIN_CRED}
+      - CLIENT_CRED=${CLIENT_CRED}
+    depends_on:
+      - frontend
+
+  frontend:
+    build:
+      context: ./streamlit_app
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      - FIREBASE_API_KEY=${FIREBASE_API_KEY}
+      - ADMIN_CRED=${ADMIN_CRED}
+      - CLIENT_CRED=${CLIENT_CRED}
