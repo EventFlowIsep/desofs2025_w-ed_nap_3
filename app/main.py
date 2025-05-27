@@ -9,13 +9,23 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
 import logging
-from typing import List
+from firebase_admin import auth as firebase_auth
+from firebase_admin.exceptions import FirebaseError
+from app.logging_db import save_log
+import hashlib
+from fastapi.responses import JSONResponse
+from fastapi.exception_handlers import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.requests import Request
 
-logging.basicConfig(level=logging.INFO)
+# Logging config
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger("eventflow")
 
-# Setup environment variable to load credentials
+# Setup env var for Firebase credentials
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "app/firebase_key.json"
 
+# Firebase init
 if not firebase_admin._apps:
     cred = credentials.Certificate("app/firebase_key.json")
     initialize_app(cred)
@@ -24,10 +34,7 @@ db = firestore.Client()
 
 app = FastAPI()
 
-@app.get("/auth/google_login.html")
-def serve_google_login():
-    return FileResponse("streamlit_app/auth/google_login.html", media_type="text/html")
-
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -36,9 +43,67 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+# Middleware to log every request with Firebase user email
+async def extract_user_from_token(request: Request):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return "anonymous"
+    id_token = auth_header.split(" ")[1]
+    try:
+        decoded_token = firebase_auth.verify_id_token(id_token)
+        return decoded_token.get("email", "unknown user")
+    except FirebaseError as e:
+        logger.warning(f"Invalid Firebase token: {e}")
+        return "invalid_token"
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    auth_header = request.headers.get("Authorization")
+    user = "anonymous"
+    token_hash = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        token_hash = hash_token(token)
+        try:
+            decoded_token = firebase_auth.verify_id_token(token)
+            user = decoded_token.get("email", "unknown user")
+        except FirebaseError:
+            user = "invalid_token"
+
+    logger.info(f"User: {user} - Token Hash: {token_hash} - Started request {request.method} {request.url}")
+
+    try:
+        response = await call_next(request)
+
+        save_log(user_email=user, method=request.method, path=str(request.url), status_code=response.status_code)
+        logger.info(f"User: {user} - Token Hash: {token_hash} - Completed request {request.method} {request.url} - Status: {response.status_code}")
+        return response
+    except Exception as e:
+        save_log(user_email=user, method=request.method, path=str(request.url), status_code=500, message=str(e))
+        logger.error(f"Exception on request: {e}")
+        raise
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    user_email = await extract_user_from_token(request)
+    logger.error(f"Input validation failure from user {user_email} on {request.method} {request.url}: {exc.errors()}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
+
+@app.get("/auth/google_login.html")
+def serve_google_login():
+    return FileResponse("streamlit_app/auth/google_login.html", media_type="text/html")
+
 def verify_token(request: Request):
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
+        logger.warning(f"Missing or invalid token on {request.method} {request.url}")
         raise HTTPException(status_code=401, detail="Missing or invalid token")
     token = auth_header.split(" ")[1]
     try:
@@ -49,12 +114,38 @@ def verify_token(request: Request):
             "role": decoded.get("role", "Client")
         }
     except:
+        logger.warning(f"Invalid token on {request.method} {request.url}")
         raise HTTPException(status_code=401, detail="Invalid token")
+
+@app.get("/logs")
+def get_logs(req: Request, user=Depends(verify_token)):
+    if user["role"] != "Admin":
+        logger.warning(f"Access denied for user {user['email']} on {req.method} {req.url} - Forbidden")
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    import sqlite3
+    conn = sqlite3.connect("eventflow_logs.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT timestamp, user_email, method, path, status_code, message FROM logs ORDER BY timestamp DESC LIMIT 100")
+    rows = cursor.fetchall()
+    conn.close()
+
+    logs = [
+        {
+            "timestamp": row[0],
+            "user_email": row[1],
+            "method": row[2],
+            "path": row[3],
+            "status_code": row[4],
+            "message": row[5],
+        } for row in rows
+    ]
+    return JSONResponse(content={"logs": logs})
+
 
 @app.get("/debug-token")
 def debug_token(user=Depends(verify_token)):
     return user
-
 
 @app.get("/events")
 def get_events(user=Depends(verify_token)):
@@ -70,6 +161,7 @@ def get_events(user=Depends(verify_token)):
 @app.post("/events/create")
 async def create_event(req: Request, user=Depends(verify_token)):
     if user["role"] not in ["Admin", "Event_manager"]:
+        logger.warning(f"Access denied for user {user['email']} on {req.method} {req.url} - Forbidden")
         raise HTTPException(status_code=403, detail="Forbidden")
     
     categories_ref = db.collection("categories")
@@ -80,8 +172,13 @@ async def create_event(req: Request, user=Depends(verify_token)):
 
     if not categories:
         raise HTTPException(status_code=400, detail="No categories found. Please create categories first.")
+    try:
+        body = await req.json()
+    except Exception as e:
+        user_email = user.get("email", "anonymous") if user else "anonymous"
+        logger.error(f"Deserialization failure from user {user_email} on {req.method} {req.url}: {e}")
+        raise HTTPException(status_code=400, detail="Invalid JSON")
     
-    body = await req.json()
     title = body.get("title")
     date = body.get("date")
     description = body.get("description", "")
@@ -108,8 +205,9 @@ async def create_event(req: Request, user=Depends(verify_token)):
     return {"message": "Event created successfully."}
 
 @app.post("/events/{event_id}/cancel")
-def cancel_event(event_id: str, user=Depends(verify_token)):
+def cancel_event(req: Request, event_id: str, user=Depends(verify_token)):
     if user["role"] not in ["Admin", "Event_manager", "Moderator"]:
+        logger.warning(f"Access denied for user {user['email']} on {req.method} {req.url} - Forbidden")
         raise HTTPException(status_code=403, detail="Forbidden")
     doc_ref = db.collection("events").document(event_id)
     if not doc_ref.get().exists:
@@ -120,7 +218,13 @@ def cancel_event(event_id: str, user=Depends(verify_token)):
 
 @app.post("/events/{event_id}/comment")
 async def post_comment(event_id: str, req: Request, user=Depends(verify_token)):
-    body = await req.json()
+    try:
+        body = await req.json()
+    except:
+        user_email = user.get("email", "anonymous") if user else "anonymous"
+        logger.error(f"Deserialization failure from user {user_email} on {req.method} {req.url}: {e}")
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+    
     text = body.get("text")
     author = body.get("author", "guest")
 
@@ -152,8 +256,9 @@ class EventUpdate(BaseModel):
     category: Optional[str]
 
 @app.put("/events/{event_id}")
-def update_event(event_id: str, update: EventUpdate, user=Depends(verify_token)):
+def update_event(req: Request, event_id: str, update: EventUpdate, user=Depends(verify_token)):
     if user.get("role") not in ["Admin", "Event_manager", "Moderator"]:
+        logger.warning(f"Access denied for user {user['email']} on {req.method} {req.url} - Forbidden")
         raise HTTPException(status_code=403, detail="You are not allowed to edit events.")
 
     event_ref = db.collection("events").document(event_id)
@@ -192,7 +297,7 @@ def filter_events_by_date(start: str = Query(...), end: str = Query(...)):
                 data["id"] = doc.id
                 filtered.append(data)
         except Exception as e:
-            loggin.error(f"Error processing event {doc.id}: {e}")
+            logger.error(f"Error processing event {doc.id}: {e}")
 
     return filtered
 
@@ -216,8 +321,9 @@ class Category(BaseModel):
     description: str = ""
 
 @app.post("/categories")
-def create_category(category: Category, user=Depends(verify_token)):
+def create_category(req: Request, category: Category, user=Depends(verify_token)):
     if user["role"] != "Admin":
+        logger.warning(f"Access denied for user {user['email']} on {req.method} {req.url} - Forbidden")
         raise HTTPException(status_code=403, detail="Only Admin can create categories.")
 
     cat_data = category.dict()
@@ -225,8 +331,9 @@ def create_category(category: Category, user=Depends(verify_token)):
     return {"msg": "Category created successfully."}
 
 @app.get("/categories")
-def get_categories(user=Depends(verify_token)):
+def get_categories(req: Request,user=Depends(verify_token)):
     if user["role"] not in ["Admin", "Event_manager"]:
+        logger.warning(f"Access denied for user {user['email']} on {req.method} {req.url} - Forbidden")
         raise HTTPException(status_code=403, detail="Only Admin or Event Manager can view categories.")
 
     categories_ref = db.collection("categories")
@@ -244,7 +351,7 @@ class CommentToDelete(BaseModel):
     text: str
 
 @app.delete("/events/{event_id}/comment")
-def delete_comment(event_id: str, comment: CommentToDelete, user=Depends(verify_token)):
+def delete_comment(req: Request,event_id: str, comment: CommentToDelete, user=Depends(verify_token)):
     event_ref = db.collection("events").document(event_id)
     event_doc = event_ref.get()
     if not event_doc.exists:
@@ -255,8 +362,10 @@ def delete_comment(event_id: str, comment: CommentToDelete, user=Depends(verify_
 
     if role not in ["Admin", "Moderator"]:
         if role == "Event_manager" and event_data.get("created_by") != user["email"]:
+            logger.warning(f"Access denied for user {user['email']} on {req.method} {req.url} - Forbidden")
             raise HTTPException(status_code=403, detail="You can only delete comments on events you created.")
         elif role != "Event_manager":
+            logger.warning(f"Access denied for user {user['email']} on {req.method} {req.url} - Forbidden")
             raise HTTPException(status_code=403, detail="Permission denied.")
 
     comment_dict = comment.dict()

@@ -181,10 +181,31 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
             else:
                 st.warning("❌ Category name is required.")
 
-    # List categories and the number of events in each category
     with st.expander("📋 View Categories and Event Counts"):
         df = list_categories()
         st.dataframe(df)
+
+    with st.expander("View Backend Logs"):
+        st.subheader("📄 Backend Logs (last 100)")
+
+        if st.button("Fetch Logs"):
+            if st.session_state.admin_token:
+                headers = {"Authorization": f"Bearer {st.session_state.admin_token}"}
+                try:
+                    res = requests.get("http://localhost:8000/logs", headers=headers, timeout=10)
+                    if res.status_code == 200:
+                        logs_data = res.json().get("logs", [])
+                        if logs_data:
+                            df_logs = pd.DataFrame(logs_data)
+                            st.dataframe(df_logs)
+                        else:
+                            st.info("No logs available.")
+                    else:
+                        st.error(f"Failed to fetch logs: {res.status_code}")
+                except Exception as e:
+                    st.error(f"Error fetching logs: {e}")
+            else:
+                st.error("Admin token missing. Please log in again.")
 
     st.markdown("---")
     if st.button("Log out"):
