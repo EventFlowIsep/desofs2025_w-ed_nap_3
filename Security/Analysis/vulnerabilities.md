@@ -3,7 +3,7 @@
 | Data       | Descrição da Alteração                                                                          | Autor        | Versão |
 |------------|-------------------------------------------------------------------------------------------------|--------------|--------|
 | 2025-05-20 | Revisão de todos os testes de segurança com ferramentas SAST (Bandit, Semgrep)                  | Rafael       | 1.0    |
-| 2025-05-22 | Melhorias nos testes SCA de forma a obter um relatório comploeto do snyk                        | Rafael       | 2.0    |
+| 2025-05-22 | Melhorias nos testes SCA de forma a obter um relatório completo do snyk                         | Rafael       | 2.0    |
 | 2025-05-25 | Testes finais antes do final sprint 1                                                           | Rafael       | 3.0    |
 
 # 🔐 Segurança na Aplicação EventFlow

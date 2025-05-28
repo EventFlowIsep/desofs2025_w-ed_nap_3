@@ -17,7 +17,12 @@ from fastapi.responses import JSONResponse
 from fastapi.exception_handlers import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
+from fastapi.templating import Jinja2Templates
+from fastapi import Request
+from dotenv import load_dotenv
 
+load_dotenv()
+FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
 # Logging config
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("eventflow")
@@ -96,9 +101,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": exc.errors()},
     )
 
+templates = Jinja2Templates(directory="streamlit_app/auth")
+
 @app.get("/auth/google_login.html")
-def serve_google_login():
-    return FileResponse("streamlit_app/auth/google_login.html", media_type="text/html")
+async def serve_google_login(request: Request):
+    return templates.TemplateResponse("google_login.html", {"request": request, "firebase_api_key": os.getenv("FIREBASE_API_KEY")}, media_type="text/html")
 
 def verify_token(request: Request):
     auth_header = request.headers.get("Authorization")
