@@ -69,6 +69,34 @@ jobs:
       - name: Build and run services with Docker Compose
         run: |
           docker compose -f docker-compose.yml up -d --build
+      - name: Verificar serviços ativos (docker ps)
+        run: docker ps
+
+      - name: Esperar pelo backend (FastAPI)
+        run: |
+          for i in {1..15}; do
+            if curl -s http://localhost:8000/docs > /dev/null; then
+              echo "Backend está ativo!";
+              exit 0
+            fi
+            echo "Aguardando backend iniciar... ($i/15)"
+            sleep 2
+          done
+          echo "Backend não iniciou!";
+          exit 1
+
+      - name: Esperar pelo frontend (Streamlit)
+        run: |
+          for i in {1..15}; do
+            if curl -s http://localhost:8501 > /dev/null; then
+              echo "Frontend está ativo!";
+              exit 0
+            fi
+            echo "Aguardando frontend iniciar... ($i/15)"
+            sleep 2
+          done
+          echo "Frontend não iniciou!";
+          exit 1
 
   dast-test:
     name: DAST - Custom Security Scan
