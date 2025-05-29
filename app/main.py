@@ -20,6 +20,9 @@ from fastapi.requests import Request
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
 from dotenv import load_dotenv
+import re
+import zxcvbn
+import requests
 
 load_dotenv()
 FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
@@ -30,7 +33,6 @@ logger = logging.getLogger("eventflow")
 # Setup env var for Firebase credentials
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "app/firebase_key.json"
 
-# Firebase init
 if not firebase_admin._apps:
     cred = credentials.Certificate("app/firebase_key.json")
     initialize_app(cred)
@@ -383,3 +385,54 @@ def delete_comment(req: Request,event_id: str, comment: CommentToDelete, user=De
     updated_comments = [c for c in existing_comments if c != comment_dict]
     event_ref.update({"comments": updated_comments})
     return {"msg": "Comment deleted successfully."}
+
+@app.get("/user/email")
+async def get_email(request: Request, user=Depends(verify_token)):
+    return {"email": user['email']}
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+
+@app.post("/user/reset_password")
+async def reset_password(request: ResetPasswordRequest):
+    try:
+        firebase_auth.send_password_reset_email(request.email)
+        return {"message": "Password reset email sent."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
+    
+def validate_password(password: str):
+    # Remove consecutive spaces and trim the password
+    password = re.sub(r'\s+', ' ', password.strip())
+    
+    # Validate length
+    if len(password) < 12:
+        raise HTTPException(status_code=400, detail="Password must be at least 12 characters.")
+    
+    if len(password) > 128:
+        raise HTTPException(status_code=400, detail="Password must not exceed 128 characters.")
+    
+    if not password.strip():
+        raise HTTPException(status_code=400, detail="Password cannot be empty or only spaces.")
+    
+    return password
+
+def check_password_strength(password: str):
+    strength = zxcvbn.password_strength(password)
+    if strength['score'] < 3:  # If the score is too low, we can consider it weak
+        raise HTTPException(status_code=400, detail="Password is too weak. Consider using a stronger password.")
+    
+def check_breached_password(password: str):
+    hashed_password = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
+    prefix, suffix = hashed_password[:5], hashed_password[5:]
+    
+    url = f"https://api.pwnedpasswords.com/range/{prefix}"
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        hashes = response.text.splitlines()
+        for hash in hashes:
+            if hash.startswith(suffix):
+                raise HTTPException(status_code=400, detail="This password has been breached. Please choose another one.")
+    else:
+        raise HTTPException(status_code=500, detail="Error checking password breach status.")

@@ -93,6 +93,7 @@ if st.session_state.page == "main":
     if "token" in st.session_state and st.session_state.token:
     # Menu based on role
         menu_options = ["View Events"]  # all have access
+        menu_options.append("User Settings")
 
         if st.session_state.user_role in ["Admin", "Event_manager"]:
             menu_options.append("Create Event")
@@ -146,10 +147,26 @@ if st.session_state.page == "main":
             else:
                 st.warning("❌ You do not have permission to cancel events.")
 
+        elif selected == "User Settings":
+            st.subheader("User Settings")
+
+            headers = {"Authorization": f"Bearer {st.session_state.token}"}
+            res = requests.get(f"{API_URL}/user/email", headers=headers)
+            if res.status_code == 200:
+                email = res.json().get("email")
+                st.text_input("Your Email", value=email, disabled=True)
+
+            if st.button("Reset Password"):
+                reset_response = requests.post(f"{API_URL}/user/reset_password", json={"email": email})
+                if reset_response.status_code == 200:
+                    st.success("Password reset email sent.")
+                else:
+                    st.error("Error sending password reset email.")
+
     else:
         st.sidebar.warning("🔐 Please log in to access features.")
         st.write("Welcome to EventFlow. Log in to get started.")
-    
+
     st.sidebar.markdown("---")
     if st.sidebar.button("🚪 Log out"):
         st.session_state.token = None
