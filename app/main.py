@@ -23,6 +23,9 @@ from dotenv import load_dotenv
 import re
 import zxcvbn
 import requests
+import html
+import redis
+from datetime import datetime, timedelta
 
 load_dotenv()
 FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
@@ -41,6 +44,10 @@ db = firestore.Client()
 
 app = FastAPI()
 
+r = redis.Redis(host='localhost', port=6379, db=0)
+
+RATE_LIMIT = 100 
+
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
@@ -53,6 +60,11 @@ app.add_middleware(
 
 def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
+
+def sanitize_for_log(text: str) -> str:
+    if not text:
+        return ""
+    return html.escape(text)
 
 # Middleware to log every request with Firebase user email
 async def extract_user_from_token(request: Request):
@@ -72,6 +84,28 @@ async def log_requests(request: Request, call_next):
     auth_header = request.headers.get("Authorization")
     user = "anonymous"
     token_hash = None
+    e = None
+    ip = request.client.host
+    key = f"rate_limit:{ip}"
+    requests_made = r.get(key)
+    if requests_made and int(requests_made) >= RATE_LIMIT:
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+    
+    if "events" in request.url.path:
+        events_key = f"rate_limit:{ip}:events"
+        requests_made = r.get(events_key)
+        if requests_made and int(requests_made) >= RATE_LIMIT:
+            raise HTTPException(status_code=429, detail="Too many requests to fetch events. Try again later.")
+        if not requests_made:
+            r.setex(events_key, timedelta(minutes=1), 1)  # Reset para 1 minuto
+        else:
+            r.incr(events_key)
+
+    if not requests_made:
+        r.setex(key, timedelta(minutes=1), 1)
+    else:
+        r.incr(key)
+
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.split(" ")[1]
         token_hash = hash_token(token)
@@ -81,17 +115,37 @@ async def log_requests(request: Request, call_next):
         except FirebaseError:
             user = "invalid_token"
 
-    logger.info(f"User: {user} - Token Hash: {token_hash} - Started request {request.method} {request.url}")
-
+    user = await extract_user_from_token(request)
+    token_hash = hash_token(request.headers.get("Authorization", "")) if user != "anonymous" else None
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+    safe_url = sanitize_for_log(str(request.url))
+    safe_method = sanitize_for_log(request.method)
+    
     try:
+        logger.info(f"User: {user} - Token Hash: {token_hash} - Started request {safe_method} {safe_url}")
         response = await call_next(request)
-
-        save_log(user_email=user, method=request.method, path=str(request.url), status_code=response.status_code)
-        logger.info(f"User: {user} - Token Hash: {token_hash} - Completed request {request.method} {request.url} - Status: {response.status_code}")
+        
+        logger.info(f"User: {user} - Token Hash: {token_hash} - Completed request {safe_method} {safe_url} - Status: {response.status_code}")
+        
+        event_type = "request_end"
+        logger.info(f"[{event_type}] User: {user} - Method: {safe_method} - Path: {safe_url} - Status: {response.status_code}")
+        
+        timestamp = datetime.datetime.utcnow().isoformat()
+        save_log(user_email=user, method=request.method, path=str(request.url), status_code=response.status_code, ip=client_host, user_agent=user_agent)
         return response
     except Exception as e:
-        save_log(user_email=user, method=request.method, path=str(request.url), status_code=500, message=str(e))
+        event_type = "exception"
+        safe_error = sanitize_for_log(str(e))
+        
+        logger.error(f"Exception on request from user {user} - Error: {safe_error}")
+        logger.error(f"[{event_type}] User: {user} - Method: {safe_method} - Path: {safe_url} - Error: {safe_error}")
+        
+        timestamp = datetime.datetime.utcnow().isoformat()
+        save_log(user_email=user, method=request.method, path=str(request.url), status_code=500, message=safe_error, ip=client_host, user_agent=user_agent)
+        
         logger.error(f"Exception on request: {e}")
+        
         raise
 
 @app.exception_handler(RequestValidationError)
@@ -131,41 +185,53 @@ def get_logs(req: Request, user=Depends(verify_token)):
     if user["role"] != "Admin":
         logger.warning(f"Access denied for user {user['email']} on {req.method} {req.url} - Forbidden")
         raise HTTPException(status_code=403, detail="Forbidden")
-    
-    import sqlite3
-    conn = sqlite3.connect("eventflow_logs.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT timestamp, user_email, method, path, status_code, message FROM logs ORDER BY timestamp DESC LIMIT 100")
-    rows = cursor.fetchall()
-    conn.close()
+    try:    
+        import sqlite3
+        conn = sqlite3.connect("eventflow_logs.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT timestamp, user_email, method, path, status_code, message FROM logs ORDER BY timestamp DESC LIMIT 100")
+        rows = cursor.fetchall()
+        conn.close()
 
-    logs = [
-        {
-            "timestamp": row[0],
-            "user_email": row[1],
-            "method": row[2],
-            "path": row[3],
-            "status_code": row[4],
-            "message": row[5],
-        } for row in rows
-    ]
-    return JSONResponse(content={"logs": logs})
+        logs = [
+            {
+                "timestamp": row[0],
+                "user_email": row[1],
+                "method": row[2],
+                "path": row[3],
+                "status_code": row[4],
+                "message": row[5],
+            } for row in rows
+        ]
+        return JSONResponse(content={"logs": logs})
 
+    except Exception as e:
+        logger.error(f"Error fetching logs: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching logs: {str(e)}")
 
 @app.get("/debug-token")
 def debug_token(user=Depends(verify_token)):
     return user
 
 @app.get("/events")
-def get_events(user=Depends(verify_token)):
-    events_ref = db.collection("events")
+def get_events(user=Depends(verify_token), page: int = Query(1, ge=1), per_page: int = Query(10, ge=1)):
+    cache_key = f"events_page_{page}_per_{per_page}"
+    cached_events = r.get(cache_key)
+    if cached_events:
+        return JSONResponse(content={"events": cached_events})
+    
+    events_ref = db.collection("events").offset((page - 1) * per_page).limit(per_page)
     docs = events_ref.stream()
     events = []
+    
     for doc in docs:
         data = doc.to_dict()
         data["id"] = doc.id
         events.append(data)
-    return events
+    
+    r.setex(cache_key, timedelta(minutes=10), events)
+
+    return {"events": events}
 
 @app.post("/events/create")
 async def create_event(req: Request, user=Depends(verify_token)):
@@ -211,6 +277,7 @@ async def create_event(req: Request, user=Depends(verify_token)):
         "registrations": []
     }
     db.collection("events").add(event)
+    logger.info(f"User {user['email']} CREATED event '{title}' in category '{category}'")
     return {"message": "Event created successfully."}
 
 @app.post("/events/{event_id}/cancel")
@@ -223,6 +290,7 @@ def cancel_event(req: Request, event_id: str, user=Depends(verify_token)):
         raise HTTPException(status_code=404, detail="Event not found")
 
     doc_ref.update({"cancelled": True})
+    logger.info(f"User {user['email']} CANCELLED event {event_id}")
     return {"message": f"Event {event_id} cancelled."}
 
 @app.post("/events/{event_id}/comment")
@@ -359,15 +427,48 @@ class CommentToDelete(BaseModel):
     timestamp: str
     text: str
 
-@app.delete("/events/{event_id}/comment")
-def delete_comment(req: Request,event_id: str, comment: CommentToDelete, user=Depends(verify_token)):
+@app.get("/events/{event_id}/comments")
+def get_comments(event_id: str, user=Depends(verify_token), page: int = Query(1, ge=1), per_page: int = Query(10, ge=1)):
+    cache_key = f"comments_{event_id}_page_{page}_per_{per_page}"
+
+    cached_comments = r.get(cache_key)
+    
+    if cached_comments:
+        return JSONResponse(content={"comments": cached_comments})
+    
     event_ref = db.collection("events").document(event_id)
     event_doc = event_ref.get()
+    
     if not event_doc.exists:
         raise HTTPException(status_code=404, detail="Event not found")
 
     event_data = event_doc.to_dict()
-    role = user.get("role")
+    comments = event_data.get("comments", [])
+
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_comments = comments[start:end]
+    
+    r.setex(cache_key, timedelta(minutes=10), paginated_comments)
+    
+    return {"comments": paginated_comments}
+
+@app.delete("/events/{event_id}/comment")
+def delete_comment(req: Request,event_id: str, comment: CommentToDelete, user=Depends(verify_token)):
+    cache_key = f"comments_{event_id}"
+    cached_comments = r.get(cache_key)
+    if cached_comments:
+        comments = cached_comments
+    else:
+        event_ref = db.collection("events").document(event_id)
+        event_doc = event_ref.get()
+        if not event_doc.exists:
+            raise HTTPException(status_code=404, detail="Event not found")
+
+        event_data = event_doc.to_dict()
+        role = user.get("role")
+
+        r.setex(cache_key, timedelta(minutes=10), comments)
 
     if role not in ["Admin", "Moderator"]:
         if role == "Event_manager" and event_data.get("created_by") != user["email"]:
@@ -384,6 +485,7 @@ def delete_comment(req: Request,event_id: str, comment: CommentToDelete, user=De
 
     updated_comments = [c for c in existing_comments if c != comment_dict]
     event_ref.update({"comments": updated_comments})
+    r.delete(cache_key)
     return {"msg": "Comment deleted successfully."}
 
 @app.get("/user/email")

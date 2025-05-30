@@ -4,8 +4,8 @@ import os
 from datetime import datetime, date
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
-DEFAULT_TIMEOUT = 10
-
+DEFAULT_TIMEOUT = 30
+EVENTS_LIMIT = 10
 def show():
     st.title("📅 All Events")
 
@@ -21,7 +21,7 @@ def show():
         filter_clicked = st.button("Apply Filter", key="filter_button")
 
     try:
-        res = requests.get(f"{API_URL}/events", headers=headers, timeout=DEFAULT_TIMEOUT)
+        res = requests.get(f"{API_URL}/events?limit={EVENTS_LIMIT}", headers=headers, timeout=DEFAULT_TIMEOUT)
         if res.status_code == 200:
             events = res.json()
             if not events:

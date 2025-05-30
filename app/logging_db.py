@@ -14,6 +14,7 @@ class SQLiteLogger:
                     cls._instance.conn = sqlite3.connect("eventflow_logs.db", check_same_thread=False)
                     cls._instance.cursor = cls._instance.conn.cursor()
                     cls._instance._create_table()
+                    cls._instance._alter_table() 
         return cls._instance
 
     def _create_table(self):
@@ -25,19 +26,35 @@ class SQLiteLogger:
                 method TEXT NOT NULL,
                 path TEXT NOT NULL,
                 status_code INTEGER NOT NULL,
-                message TEXT
+                message TEXT,
+                ip TEXT,
+                user_agent TEXT
             )
         ''')
         self.conn.commit()
 
-    def save_log(self, user_email, method, path, status_code, message=""):
+    def _alter_table(self):
+        try:
+            self.cursor.execute('''
+                ALTER TABLE logs
+                ADD COLUMN ip TEXT;
+            ''')
+            self.cursor.execute('''
+                ALTER TABLE logs
+                ADD COLUMN user_agent TEXT;
+            ''')
+            self.conn.commit()
+        except sqlite3.OperationalError as e:
+            pass
+
+    def save_log(self, user_email, method, path, status_code, message="", ip=None, user_agent=""):
         timestamp = datetime.utcnow().isoformat()
         self.cursor.execute('''
-            INSERT INTO logs (timestamp, user_email, method, path, status_code, message)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (timestamp, user_email, method, path, status_code, message))
+            INSERT INTO logs (timestamp, user_email, method, path, status_code, message, ip, user_agent)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (timestamp, user_email, method, path, status_code, message, ip, user_agent))
         self.conn.commit()
 
-def save_log(user_email, method, path, status_code, message=""):
+def save_log(user_email, method, path, status_code, message="", ip=None, user_agent = ""):
     logger = SQLiteLogger()
-    logger.save_log(user_email, method, path, status_code, message)
+    logger.save_log(user_email, method, path, status_code, message, ip, user_agent)

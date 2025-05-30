@@ -10,6 +10,10 @@ from modules import create_event, cancel_events, view_events
 from dotenv import load_dotenv
 from google.cloud import firestore
 import datetime
+import time
+
+last_request_time = st.session_state.get('last_request_time', 0)
+RATE_LIMIT = 2 
 
 
 st.set_page_config(
@@ -43,7 +47,7 @@ if "description" not in st.session_state:
 if "category" not in st.session_state:
     st.session_state.category = ""
 
-DEFAULT_TIMEOUT = 10
+DEFAULT_TIMEOUT = 30
 
 def get_user_role(token):
     headers = {"Authorization": f"Bearer {token}"}
@@ -79,163 +83,167 @@ def list_categories():
     return category_names
 
 def reset_form():
-                st.session_state.title = ""
-                st.session_state.date = datetime.date.today()
-                st.session_state.description = ""
-                st.session_state.category = ""
+    st.session_state.title = ""
+    st.session_state.date = datetime.date.today()
+    st.session_state.description = ""
+    st.session_state.category = ""
 
+if time.time() - last_request_time < RATE_LIMIT:
+    st.warning("Please wait before making another request.")
+else:
+    st.session_state.last_request_time = time.time()
 # Redirect after login
-if st.session_state.page == "main":
-    st.sidebar.title("📂 Menu")
-    if st.session_state.user_role:
-        st.sidebar.markdown(f"🧑 Logged in as: **{st.session_state.user_role.capitalize()}**")
+    if st.session_state.page == "main":
+        st.sidebar.title("📂 Menu")
+        if st.session_state.user_role:
+            st.sidebar.markdown(f"🧑 Logged in as: **{st.session_state.user_role.capitalize()}**")
     
-    if "token" in st.session_state and st.session_state.token:
-    # Menu based on role
-        menu_options = ["View Events"]  # all have access
-        menu_options.append("User Settings")
+        if "token" in st.session_state and st.session_state.token:
+        # Menu based on role
+            menu_options = ["View Events"]  # all have access
+            menu_options.append("User Settings")
 
-        if st.session_state.user_role in ["Admin", "Event_manager"]:
-            menu_options.append("Create Event")
-            menu_options.append("Cancel Event")
+            if st.session_state.user_role in ["Admin", "Event_manager"]:
+                menu_options.append("Create Event")
+                menu_options.append("Cancel Event")
 
-        if st.session_state.user_role == "Admin":
-            menu_options.append("Manage Users")
+            if st.session_state.user_role == "Admin":
+                menu_options.append("Manage Users")
 
-        selected = st.sidebar.selectbox("Choose an action", menu_options)
+            selected = st.sidebar.selectbox("Choose an action", menu_options)
 
     # Routing
-        if selected == "View Events":
-            view_events.show()
+            if selected == "View Events":
+                view_events.show()
 
-        elif selected == "Create Event":
-            if st.session_state.user_role in ["Admin", "Event_manager"]:
-                st.subheader("Create Event")
+            elif selected == "Create Event":
+                if st.session_state.user_role in ["Admin", "Event_manager"]:
+                    st.subheader("Create Event")
 
-                st.session_state.title = st.text_input("Event Title", st.session_state.title)
-                st.session_state.date = st.date_input("Event Date", st.session_state.date)
-                st.session_state.description = st.text_area("Event Description", st.session_state.description)
+                    st.session_state.title = st.text_input("Event Title", st.session_state.title)
+                    st.session_state.date = st.date_input("Event Date", st.session_state.date)
+                    st.session_state.description = st.text_area("Event Description", st.session_state.description)
                 
-                categories = list_categories() 
-                selected_category = st.selectbox("Select Category", categories)
+                    categories = list_categories() 
+                    selected_category = st.selectbox("Select Category", categories)
                 
-                if st.button("Create Event"):
-                    payload = {
-                        "title": st.session_state.title,
-                        "date": str(st.session_state.date),
-                        "description": st.session_state.description,
-                        "category": selected_category
-                    }
-                    try:
-                        headers = {"Authorization": f"Bearer {st.session_state.token}"}
-                        res = requests.post(f"{API_URL}/events/create", json=payload, headers=headers, timeout=10)
-                        if res.status_code == 200:
-                            st.success("✅ Event created successfully.")
-                            reset_form()
-                        else:
-                            st.error("❌ Failed to create event.")
-                    except Exception as e:
-                        st.error(f"Backend error: {e}")
-                if st.button("Reset Form"):
-                    reset_form()
-            else:
-                st.warning("❌ You do not have permission to create events.")
-
-        elif selected == "Cancel Event":
-            if st.session_state.user_role in ["Admin", "Event_manager"]:
-                cancel_events.show()
-            else:
-                st.warning("❌ You do not have permission to cancel events.")
-
-        elif selected == "User Settings":
-            st.subheader("User Settings")
-
-            headers = {"Authorization": f"Bearer {st.session_state.token}"}
-            res = requests.get(f"{API_URL}/user/email", headers=headers)
-            if res.status_code == 200:
-                email = res.json().get("email")
-                st.text_input("Your Email", value=email, disabled=True)
-
-            if st.button("Reset Password"):
-                reset_response = requests.post(f"{API_URL}/user/reset_password", json={"email": email})
-                if reset_response.status_code == 200:
-                    st.success("Password reset email sent.")
+                    if st.button("Create Event"):
+                        payload = {
+                            "title": st.session_state.title,
+                            "date": str(st.session_state.date),
+                            "description": st.session_state.description,
+                            "category": selected_category
+                        }
+                        try:
+                            headers = {"Authorization": f"Bearer {st.session_state.token}"}
+                            res = requests.post(f"{API_URL}/events/create", json=payload, headers=headers, timeout=DEFAULT_TIMEOUT)
+                            if res.status_code == 200:
+                                st.success("✅ Event created successfully.")
+                                reset_form()
+                            else:
+                                st.error("❌ Failed to create event.")
+                        except Exception as e:
+                            st.error(f"Backend error: {e}")
+                    if st.button("Reset Form"):
+                        reset_form()
                 else:
-                    st.error("Error sending password reset email.")
+                    st.warning("❌ You do not have permission to create events.")
 
-    else:
-        st.sidebar.warning("🔐 Please log in to access features.")
-        st.write("Welcome to EventFlow. Log in to get started.")
+            elif selected == "Cancel Event":
+                if st.session_state.user_role in ["Admin", "Event_manager"]:
+                    cancel_events.show()
+                else:
+                    st.warning("❌ You do not have permission to cancel events.")
 
-    st.sidebar.markdown("---")
-    if st.sidebar.button("🚪 Log out"):
-        st.session_state.token = None
-        st.session_state.user_role = None
-        st.session_state.page = "auth"
-        st.query_params.clear()
-        st.rerun()
+            elif selected == "User Settings":
+                st.subheader("User Settings")
 
-elif st.session_state.page == "auth":
-    st.title("Login 🔐")
-    st.markdown("<h1 style='text-align: center;'>👋 Welcome to EventFlow 👋</h1>", unsafe_allow_html=True)
+                headers = {"Authorization": f"Bearer {st.session_state.token}"}
+                es = requests.get(f"{API_URL}/user/email", headers=headers)
+                if res.status_code == 200:
+                    email = res.json().get("email")
+                    st.text_input("Your Email", value=email, disabled=True)
 
-    st.sidebar.title("🔐 Login")
-    option = st.sidebar.selectbox("Login method", ["Email", "Google"], index=0)
+                if st.button("Reset Password"):
+                    reset_response = requests.post(f"{API_URL}/user/reset_password", json={"email": email})
+                    if reset_response.status_code == 200:
+                        st.success("Password reset email sent.")
+                    else:
+                        st.error("Error sending password reset email.")
 
-    if option == "Email":
-        st.sidebar.text_input("Email", key="log_email")
-        st.sidebar.text_input("Password", type="password", key="log_pass")
-        if st.sidebar.button("Login"):
-            res = firebase_login(st.session_state.log_email, st.session_state.log_pass)
+        else:
+            st.sidebar.warning("🔐 Please log in to access features.")
+            st.write("Welcome to EventFlow. Log in to get started.")
+
+        st.sidebar.markdown("---")
+        if st.sidebar.button("🚪 Log out"):
+            st.session_state.token = None
+            st.session_state.user_role = None
+            st.session_state.page = "auth"
+            st.query_params.clear()
+            st.rerun()
+
+    elif st.session_state.page == "auth":
+        st.title("Login 🔐")
+        st.markdown("<h1 style='text-align: center;'>👋 Welcome to EventFlow 👋</h1>", unsafe_allow_html=True)
+
+        st.sidebar.title("🔐 Login")
+        option = st.sidebar.selectbox("Login method", ["Email", "Google"], index=0)
+
+        if option == "Email":
+            st.sidebar.text_input("Email", key="log_email")
+            st.sidebar.text_input("Password", type="password", key="log_pass")
+            if st.sidebar.button("Login"):
+                res = firebase_login(st.session_state.log_email, st.session_state.log_pass)
+                if res.status_code == 200:
+                    token = res.json()["idToken"]
+                    st.session_state.token = token
+                    st.session_state.user_role = get_user_role(token)
+                    st.success("Login successful!")
+                    st.session_state.page = "main"
+                    st.rerun()
+                else:
+                    st.sidebar.error("Login failed: " + res.json().get("error", {}).get("message", "Unknown error"))
+
+        elif option == "Google":
+            if st.sidebar.button("🔓 Sign in with Google"):
+                st.session_state.trigger_google_redirect = True
+                st.rerun()
+
+            if st.session_state.trigger_google_redirect:
+                st.markdown(
+                    """
+                        <meta http-equiv="refresh" content="0; url='http://localhost:8000/auth/google_login.html'" />
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                st.session_state.trigger_google_redirect = False
+
+            st.sidebar.info("You will be redirected and logged in automatically.")
+
+        st.sidebar.markdown("---")
+        if st.sidebar.button("Register"):
+            st.session_state.page = "register"
+            st.rerun()
+
+    elif st.session_state.page == "register":
+        st.title("Register 📝")
+        st.title("📝 Create a New Account")
+        email = st.text_input("Email", key="reg_email")
+        password = st.text_input("Password", type="password", key="reg_pass")
+        if st.button("Register"):
+            res = firebase_register(email, password)
             if res.status_code == 200:
-                token = res.json()["idToken"]
-                st.session_state.token = token
-                st.session_state.user_role = get_user_role(token)
-                st.success("Login successful!")
-                st.session_state.page = "main"
+                st.success("✅ Registered! You can now log in.")
+                st.session_state.page = "auth"
+                st.session_state.auth_mode = "Email"
                 st.rerun()
             else:
-                st.sidebar.error("Login failed: " + res.json().get("error", {}).get("message", "Unknown error"))
+                st.error("Registration failed: " + res.json().get("error", {}).get("message", "Unknown error"))
 
-    elif option == "Google":
-        if st.sidebar.button("🔓 Sign in with Google"):
-            st.session_state.trigger_google_redirect = True
-            st.rerun()
-
-        if st.session_state.trigger_google_redirect:
-            st.markdown(
-                """
-                    <meta http-equiv="refresh" content="0; url='http://localhost:8000/auth/google_login.html'" />
-                """,
-                unsafe_allow_html=True
-            )
-
-            st.session_state.trigger_google_redirect = False
-
-        st.sidebar.info("You will be redirected and logged in automatically.")
-
-    st.sidebar.markdown("---")
-    if st.sidebar.button("Register"):
-        st.session_state.page = "register"
-        st.rerun()
-
-elif st.session_state.page == "register":
-    st.title("Register 📝")
-    st.title("📝 Create a New Account")
-    email = st.text_input("Email", key="reg_email")
-    password = st.text_input("Password", type="password", key="reg_pass")
-    if st.button("Register"):
-        res = firebase_register(email, password)
-        if res.status_code == 200:
-            st.success("✅ Registered! You can now log in.")
+        st.markdown("---")
+        st.markdown("Already have an account?")
+        if st.button("Login"):
             st.session_state.page = "auth"
-            st.session_state.auth_mode = "Email"
             st.rerun()
-        else:
-            st.error("Registration failed: " + res.json().get("error", {}).get("message", "Unknown error"))
-
-    st.markdown("---")
-    st.markdown("Already have an account?")
-    if st.button("Login"):
-        st.session_state.page = "auth"
-        st.rerun()

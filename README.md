@@ -1,4 +1,18 @@
-The application was developed using **Domain-Driven Design (DDD)** and aligned with the **Secure Software Development Lifecycle (SSDLC)** methodology to ensure a modular architecture and strong security practices throughout development.
+# EventFlow
+
+EventFlow is a secure event management platform designed to facilitate role-based event creation, registration, and moderation. The application was developed using **Domain-Driven Design (DDD)** and aligned with the **Secure Software Development Lifecycle (SSDLC)** methodology to ensure a modular architecture and strong security practices throughout development.
+
+---
+
+## 📋 Prerequisites
+
+- Python 3.10+
+- Docker
+- Firebase account and service account JSON key
+- Environment variables:
+  - `FIREBASE_API_KEY`
+  - `API_URL` (default: http://localhost:8000)
+  - `GOOGLE_APPLICATION_CREDENTIALS` (path to Firebase JSON key)
 
 ---
 
@@ -83,6 +97,19 @@ The application was developed using **Domain-Driven Design (DDD)** and aligned w
 | **DAST** | Post-deployment | OWASP ZAP                | Simulate external hacker behavior          |
 | **IAST** | Optional        | Contrast, Seeker         | Combine SAST + DAST for dynamic validation |
 
+## ⚙️ Setup
+
+1. Clone the repo
+
+2. Create `.env` file based on `.env.example` with required variables
+
+3. Install dependencies:
+
+pip install -r requirements.txt
+
+```bash
+pip install -r requirements.txt
+
 ## 🛠️ How to Run the System
 
 Make sure Docker and Git are installed. Run all commands from the project root.
@@ -109,7 +136,7 @@ python app/assign_role.py --email user@example.com --role Event_manager
 
 ---
 
-## 🔒 Run Security Analysis Tools
+## 🔒 Run Security Analysis Tools & Tests
 
 ### Prerequisites
 
@@ -138,6 +165,12 @@ These scripts scan:
 
 * **SAST:** source code vulnerabilities with Bandit and Semgrep
 * **SCA:** dependencies using pip-audit and Snyk
+
+### 4. Run SAST and SCA (Windows PowerShell)
+
+Run automated tests with:
+
+pytest tests/
 
 ---
 
