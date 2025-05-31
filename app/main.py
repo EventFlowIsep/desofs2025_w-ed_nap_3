@@ -4,7 +4,6 @@ from firebase_admin import credentials, auth, initialize_app
 from google.cloud import firestore
 import firebase_admin
 import os
-import datetime
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -25,6 +24,7 @@ import zxcvbn
 import requests
 import html
 import redis
+import json
 from datetime import datetime, timedelta
 
 load_dotenv()
@@ -44,7 +44,15 @@ db = firestore.Client()
 
 app = FastAPI()
 
-r = redis.Redis(host='localhost', port=6379, db=0)
+try:
+    r = redis.Redis(host='localhost', port=6379, db=0, socket_connect_timeout=5)
+    # Verifique se a conexão foi bem-sucedida
+    r.ping()
+    logger.info("Redis connected successfully.")
+except redis.exceptions.ConnectionError as e:
+    logger.error(f"Redis connection failed: {e}")
+    r = None  # Caso a conexão falhe, o Redis não será usado
+    raise HTTPException(status_code=500, detail="Redis service is unavailable.")
 
 RATE_LIMIT = 100 
 
@@ -78,6 +86,17 @@ async def extract_user_from_token(request: Request):
     except FirebaseError as e:
         logger.warning(f"Invalid Firebase token: {e}")
         return "invalid_token"
+
+@app.get("/test-firestore-connection")
+def test_firestore_connection():
+    try:
+        # Tente acessar um pequeno pedaço da coleção de eventos
+        docs = db.collection("events").limit(1).stream()
+        events = [doc.to_dict() for doc in docs]
+        return {"message": "Firestore connection successful", "events": events}
+    except Exception as e:
+        logger.error(f"Error connecting to Firestore: {e}")
+        raise HTTPException(status_code=500, detail="Failed to connect to Firestore.")
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -131,7 +150,7 @@ async def log_requests(request: Request, call_next):
         event_type = "request_end"
         logger.info(f"[{event_type}] User: {user} - Method: {safe_method} - Path: {safe_url} - Status: {response.status_code}")
         
-        timestamp = datetime.datetime.utcnow().isoformat()
+        timestamp = datetime.utcnow().isoformat()
         save_log(user_email=user, method=request.method, path=str(request.url), status_code=response.status_code, ip=client_host, user_agent=user_agent)
         return response
     except Exception as e:
@@ -141,7 +160,7 @@ async def log_requests(request: Request, call_next):
         logger.error(f"Exception on request from user {user} - Error: {safe_error}")
         logger.error(f"[{event_type}] User: {user} - Method: {safe_method} - Path: {safe_url} - Error: {safe_error}")
         
-        timestamp = datetime.datetime.utcnow().isoformat()
+        timestamp = datetime.utcnow().isoformat()
         save_log(user_email=user, method=request.method, path=str(request.url), status_code=500, message=safe_error, ip=client_host, user_agent=user_agent)
         
         logger.error(f"Exception on request: {e}")
@@ -215,23 +234,27 @@ def debug_token(user=Depends(verify_token)):
 
 @app.get("/events")
 def get_events(user=Depends(verify_token), page: int = Query(1, ge=1), per_page: int = Query(10, ge=1)):
-    cache_key = f"events_page_{page}_per_{per_page}"
-    cached_events = r.get(cache_key)
-    if cached_events:
-        return JSONResponse(content={"events": cached_events})
-    
-    events_ref = db.collection("events").offset((page - 1) * per_page).limit(per_page)
-    docs = events_ref.stream()
-    events = []
-    
-    for doc in docs:
-        data = doc.to_dict()
-        data["id"] = doc.id
-        events.append(data)
-    
-    r.setex(cache_key, timedelta(minutes=10), events)
-
-    return {"events": events}
+    try:
+        cache_key = f"events_page_{page}_per_{per_page}"
+        cached_events = r.get(cache_key)
+        
+        if cached_events:
+            return JSONResponse(content={"events": json.loads(cached_events)})
+        
+        events_ref = db.collection("events").offset((page - 1) * per_page).limit(per_page)
+        docs = events_ref.stream()
+        events = []
+        
+        for doc in docs:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            events.append(data)
+        
+        r.setex(cache_key, timedelta(minutes=10), json.dumps(events))
+        return {"events": events}
+    except Exception as e:
+        logger.error(f"Error fetching events: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching events: {str(e)}")
 
 @app.post("/events/create")
 async def create_event(req: Request, user=Depends(verify_token)):
@@ -316,7 +339,7 @@ async def post_comment(event_id: str, req: Request, user=Depends(verify_token)):
     comment = {
         "author": author,
         "text": text,
-        "timestamp": datetime.datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat()
     }
     doc_ref.update({"comments": firestore.ArrayUnion([comment])})
     return {"message": "Comment added successfully"}
@@ -387,7 +410,7 @@ def register_for_event(event_id: str, user=Depends(verify_token)):
     registration = {
         "uid": user["uid"],
         "email": user["email"],
-        "timestamp": datetime.datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat()
     }
 
     doc_ref.update({"registrations": firestore.ArrayUnion([registration])})

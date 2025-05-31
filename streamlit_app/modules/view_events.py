@@ -22,16 +22,19 @@ def show():
 
     try:
         res = requests.get(f"{API_URL}/events?limit={EVENTS_LIMIT}", headers=headers, timeout=DEFAULT_TIMEOUT)
+        res.raise_for_status()
         if res.status_code == 200:
             events = res.json()
-            if not events:
-                st.info("No events available yet.")
-            else:
-                if filter_clicked:
-                    events = [e for e in events if "date" in e and e["date"] >= start_date.strftime("%Y-%m-%d")]
-                    if exclude_cancelled:
-                        events = [e for e in events if not e.get("cancelled", False)]
-                    events.sort(key=lambda x: x["date"])
+            if isinstance(events, dict) and 'events' in events:
+                events = events['events']
+                if not events:
+                    st.info("No events available yet.")
+                else:
+                    if filter_clicked:
+                        events = [e for e in events if "date" in e and e["date"] >= start_date.strftime("%Y-%m-%d")]
+                        if exclude_cancelled:
+                            events = [e for e in events if not e.get("cancelled", False)]
+                        events.sort(key=lambda x: x["date"])
 
                 cat_res = requests.get(f"{API_URL}/categories", headers=headers, timeout=DEFAULT_TIMEOUT)
                 if cat_res.status_code == 200:
@@ -134,6 +137,6 @@ def show():
                                 else:
                                     st.error("Failed to update event.")
         else:
-            st.error("Failed to load events.")
+            st.error(f"Failed to load events. Status code: {res.status_code}. Please try again later.")
     except Exception as e:
         st.error(f"Backend error: {e}")
