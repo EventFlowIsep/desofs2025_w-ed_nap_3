@@ -23,9 +23,10 @@ import re
 import zxcvbn
 import requests
 import html
-import redis
 import json
 from datetime import datetime, timedelta
+import subprocess
+import socket
 
 load_dotenv()
 FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
@@ -43,16 +44,8 @@ if not firebase_admin._apps:
 db = firestore.Client()
 
 app = FastAPI()
-
-try:
-    r = redis.Redis(host='localhost', port=6379, db=0, socket_connect_timeout=5)
-    # Verifique se a conexão foi bem-sucedida
-    r.ping()
-    logger.info("Redis connected successfully.")
-except redis.exceptions.ConnectionError as e:
-    logger.error(f"Redis connection failed: {e}")
-    r = None  # Caso a conexão falhe, o Redis não será usado
-    raise HTTPException(status_code=500, detail="Redis service is unavailable.")
+in_memory_cache = {}
+rate_limit_cache = {}
 
 RATE_LIMIT = 100 
 
@@ -105,25 +98,30 @@ async def log_requests(request: Request, call_next):
     token_hash = None
     e = None
     ip = request.client.host
-    key = f"rate_limit:{ip}"
-    requests_made = r.get(key)
-    if requests_made and int(requests_made) >= RATE_LIMIT:
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+
+    now = datetime.utcnow()
+    entry = rate_limit_cache.get(ip)
+
+    if entry and entry["count"] >= RATE_LIMIT and entry["reset_time"] > now:
+        raise HTTPException(status_code=429, detail="Too many requests")
+    elif not entry or entry["reset_time"] <= now:
+        rate_limit_cache[ip] = {"count": 1, "reset_time": now + timedelta(minutes=1)}
+    else:
+        entry["count"] += 1
+
     
     if "events" in request.url.path:
         events_key = f"rate_limit:{ip}:events"
-        requests_made = r.get(events_key)
-        if requests_made and int(requests_made) >= RATE_LIMIT:
-            raise HTTPException(status_code=429, detail="Too many requests to fetch events. Try again later.")
-        if not requests_made:
-            r.setex(events_key, timedelta(minutes=1), 1)  # Reset para 1 minuto
+        now = datetime.utcnow()
+        entry = in_memory_cache.get(events_key)
+        if not entry or entry["reset_time"] <= now:
+            in_memory_cache[events_key] = {"count": 1, "reset_time": now + timedelta(minutes=1)}
+        elif entry["count"] >= RATE_LIMIT:
+            raise HTTPException(status_code=429, detail="Too many requests")
         else:
-            r.incr(events_key)
+            entry["count"] += 1
 
-    if not requests_made:
-        r.setex(key, timedelta(minutes=1), 1)
-    else:
-        r.incr(key)
+
 
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.split(" ")[1]
@@ -188,12 +186,14 @@ def verify_token(request: Request):
         logger.warning(f"Missing or invalid token on {request.method} {request.url}")
         raise HTTPException(status_code=401, detail="Missing or invalid token")
     token = auth_header.split(" ")[1]
+    ip = request.client.host
     try:
         decoded = auth.verify_id_token(token)
         return {
             "uid": decoded.get("uid"),
             "email": decoded.get("email"),
-            "role": decoded.get("role", "Client")
+            "role": decoded.get("role", "Client"),
+            "ip": ip
         }
     except:
         logger.warning(f"Invalid token on {request.method} {request.url}")
@@ -236,10 +236,11 @@ def debug_token(user=Depends(verify_token)):
 def get_events(user=Depends(verify_token), page: int = Query(1, ge=1), per_page: int = Query(10, ge=1)):
     try:
         cache_key = f"events_page_{page}_per_{per_page}"
-        cached_events = r.get(cache_key)
+        cached = in_memory_cache.get(cache_key)
         
-        if cached_events:
-            return JSONResponse(content={"events": json.loads(cached_events)})
+        if cached and cached["expires_at"] > datetime.utcnow():
+            return {"events": cached["data"]}
+
         
         events_ref = db.collection("events").offset((page - 1) * per_page).limit(per_page)
         docs = events_ref.stream()
@@ -250,7 +251,11 @@ def get_events(user=Depends(verify_token), page: int = Query(1, ge=1), per_page:
             data["id"] = doc.id
             events.append(data)
         
-        r.setex(cache_key, timedelta(minutes=10), json.dumps(events))
+        in_memory_cache[cache_key] = {
+            "data": events,
+            "expires_at": datetime.utcnow() + timedelta(minutes=10)
+        }
+
         return {"events": events}
     except Exception as e:
         logger.error(f"Error fetching events: {e}")
@@ -454,10 +459,11 @@ class CommentToDelete(BaseModel):
 def get_comments(event_id: str, user=Depends(verify_token), page: int = Query(1, ge=1), per_page: int = Query(10, ge=1)):
     cache_key = f"comments_{event_id}_page_{page}_per_{per_page}"
 
-    cached_comments = r.get(cache_key)
+    cached = in_memory_cache.get(cache_key)
     
-    if cached_comments:
-        return JSONResponse(content={"comments": cached_comments})
+    if cached and cached["expires_at"] > datetime.utcnow():
+        return {"comments": cached["data"]}
+
     
     event_ref = db.collection("events").document(event_id)
     event_doc = event_ref.get()
@@ -472,16 +478,18 @@ def get_comments(event_id: str, user=Depends(verify_token), page: int = Query(1,
     end = start + per_page
     paginated_comments = comments[start:end]
     
-    r.setex(cache_key, timedelta(minutes=10), paginated_comments)
-    
+    in_memory_cache[cache_key] = {
+        "data": paginated_comments,
+        "expires_at": datetime.utcnow() + timedelta(minutes=10)
+    }
+
     return {"comments": paginated_comments}
 
 @app.delete("/events/{event_id}/comment")
 def delete_comment(req: Request,event_id: str, comment: CommentToDelete, user=Depends(verify_token)):
     cache_key = f"comments_{event_id}"
-    cached_comments = r.get(cache_key)
-    if cached_comments:
-        comments = cached_comments
+    if cache_key in in_memory_cache:
+        comments = in_memory_cache[cache_key]["data"]
     else:
         event_ref = db.collection("events").document(event_id)
         event_doc = event_ref.get()
@@ -491,7 +499,6 @@ def delete_comment(req: Request,event_id: str, comment: CommentToDelete, user=De
         event_data = event_doc.to_dict()
         role = user.get("role")
 
-        r.setex(cache_key, timedelta(minutes=10), comments)
 
     if role not in ["Admin", "Moderator"]:
         if role == "Event_manager" and event_data.get("created_by") != user["email"]:
@@ -503,12 +510,18 @@ def delete_comment(req: Request,event_id: str, comment: CommentToDelete, user=De
 
     comment_dict = comment.dict()
     existing_comments = event_data.get("comments", [])
+    event_ref = db.collection("events").document(event_id)
+    event_doc = event_ref.get()
+    event_data = event_doc.to_dict()
     if comment_dict not in existing_comments:
         raise HTTPException(status_code=404, detail="Comment not found")
 
+    keys_to_delete = [k for k in in_memory_cache if k.startswith(f"comments_{event_id}_")]
+    for k in keys_to_delete:
+        in_memory_cache.pop(k, None)
     updated_comments = [c for c in existing_comments if c != comment_dict]
     event_ref.update({"comments": updated_comments})
-    r.delete(cache_key)
+    in_memory_cache.pop(cache_key, None)
     return {"msg": "Comment deleted successfully."}
 
 @app.get("/user/email")

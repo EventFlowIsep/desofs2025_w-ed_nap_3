@@ -18,4 +18,3 @@ httpx
 firebase-admin==6.4.0
 jinja2
 zxcvbn
-redis

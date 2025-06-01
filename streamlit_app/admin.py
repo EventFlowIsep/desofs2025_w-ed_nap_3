@@ -7,11 +7,8 @@ import datetime
 import os
 from dotenv import load_dotenv
 from google.cloud import firestore
-import redis
 from datetime import datetime, timedelta
 import json
-
-r = redis.Redis(host='localhost', port=6379, db=0)
 
 RATE_LIMIT = 5
 
@@ -135,36 +132,56 @@ if st.session_state.admin_page == "login":
 
     if st.button("Login"):
         res = firebase_admin_login(email, password)
-        if res.status_code == 200:
-            token = res.json()["idToken"]
-            if verify_admin_token(token):
-                ip = st.request.remote_addr  # Pega o IP do cliente
-                key = f"rate_limit:{ip}:admin_login"
-                requests_made = r.get(key)
-                if requests_made and int(requests_made) >= RATE_LIMIT:
-                    st.error("Too many login attempts. Please try again later.")
-                else:
-                    st.session_state.admin_token = token
-                    st.session_state.admin_verified = True
-                    st.session_state.admin_page = "panel"
-                    st.success("Admin verified! Redirecting...")
-                    st.rerun()
-            else:
-                st.error("Access denied. Not an admin user.")
-        else:
+        if res.status_code != 200:
             st.error("Invalid credentials or user not found.")
+            st.stop()
+
+        token = res.json()["idToken"]
+        headers = {"Authorization": f"Bearer {token}"}
+        verify_res = requests.get("http://localhost:8000/verify-token", headers=headers)
+
+        if verify_res.status_code != 200:
+            st.error("❌ Failed to verify token. Possibly expired or invalid.")
+            st.stop()
+
+        try:
+            data = verify_res.json()
+            ip = data.get("ip", "unknown")
+            st.session_state.admin_ip = ip
+        except Exception:
+            st.error("❌ Failed to parse JSON from /verify-token")
+            st.stop()
+
+        key = f"rate_limit:{ip}:admin_login"
+        attempts = st.session_state.get(key, 0)
+        if attempts >= RATE_LIMIT:
+            st.error("🚫 Too many login attempts. Please try again later.")
+            st.stop()
+        else:
+            st.session_state[key] = attempts + 1
+
+        if verify_admin_token(token):
+            st.session_state.admin_token = token
+            st.session_state.admin_verified = True
+            st.session_state.admin_page = "panel"
+            st.success("✅ Admin verified! Redirecting...")
+            st.rerun()
+        else:
+            st.error("⛔ Access denied. Not an authorized admin.")
+            st.stop()
+
 
 # --- Admin Panel ---
 elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
     st.title("🛠️ Admin Panel - Manage Roles")
 
-    ip = st.request.remote_addr
+    ip = st.session_state.get("admin_ip", "unknown")
     key = f"rate_limit:{ip}:admin_panel"
-    requests_made = r.get(key)
-    if requests_made and int(requests_made) >= RATE_LIMIT:
+    requests_made = st.session_state.get(key, 0)
+    if requests_made >= RATE_LIMIT:
         st.error("Too many requests. Try again later.")
     else:
-        r.setex(key, timedelta(minutes=1), 1)
+        st.session_state[key] = requests_made + 1
 
         with st.expander("🔍 Check User Role"):
             query_email = st.text_input("Enter user email to check role", key="check_role")
@@ -227,6 +244,36 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
                         st.write("Error details:", e)
                 else:
                     st.error("Admin token missing. Please log in again.")
+
+        with st.expander("🚀 Real-Time Log Monitoring Dashboard"):
+            st.subheader("📊 Critical Errors in the Last 10 Minutes")
+
+            try:
+                import sqlite3
+                now = datetime.utcnow()
+                ten_minutes_ago = now - timedelta(minutes=10)
+
+                conn = sqlite3.connect("eventflow_logs.db")
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT timestamp, user_email, method, path, status_code, message
+                    FROM logs
+                    WHERE status_code >= 400 AND timestamp >= ?
+                    ORDER BY timestamp DESC
+                ''', (ten_minutes_ago.isoformat(),))
+                recent_errors = cursor.fetchall()
+                conn.close()
+
+                if recent_errors:
+                    df_errors = pd.DataFrame(recent_errors, columns=[
+                        "Timestamp", "User Email", "Method", "Path", "Status Code", "Message"])
+                    st.error(f"{len(recent_errors)} error(s) detected in the last 10 minutes.")
+                    st.dataframe(df_errors, use_container_width=True)
+                else:
+                    st.success("✅ No critical errors in the last 10 minutes.")
+            except Exception as e:
+                st.error(f"❌ Error reading log database: {e}")
+
 
         st.markdown("---")
         if st.button("Log out"):
