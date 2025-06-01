@@ -19,3 +19,4 @@ firebase-admin==6.4.0
 jinja2
 zxcvbn
 redis
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
