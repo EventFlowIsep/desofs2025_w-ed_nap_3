@@ -27,6 +27,9 @@ import json
 from datetime import datetime, timedelta
 import subprocess
 import socket
+from app.logging_db import SQLiteLogger
+
+SQLiteLogger()
 
 load_dotenv()
 FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")

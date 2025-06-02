@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 from google.cloud import firestore
 from datetime import datetime, timedelta
 import json
+import sqlite3
+from streamlit_autorefresh import st_autorefresh
 
 RATE_LIMIT = 5
 
@@ -246,34 +248,98 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
                     st.error("Admin token missing. Please log in again.")
 
         with st.expander("🚀 Real-Time Log Monitoring Dashboard"):
-            st.subheader("📊 Critical Errors in the Last 10 Minutes")
+            st_autorefresh(interval=60 * 1000, key="log_refresh")
 
+            st.subheader("📄 Last 100 Logs")
             try:
-                import sqlite3
-                now = datetime.utcnow()
-                ten_minutes_ago = now - timedelta(minutes=10)
-
+                DB_PATH = os.path.join(os.path.dirname(__file__), "..", "app", "eventflow_logs.db")
                 conn = sqlite3.connect("eventflow_logs.db")
-                cursor = conn.cursor()
+                cursor = conn.cursor(DB_PATH)
                 cursor.execute('''
                     SELECT timestamp, user_email, method, path, status_code, message
                     FROM logs
-                    WHERE status_code >= 400 AND timestamp >= ?
                     ORDER BY timestamp DESC
-                ''', (ten_minutes_ago.isoformat(),))
-                recent_errors = cursor.fetchall()
+                    LIMIT 100
+                ''')
+                logs = cursor.fetchall()
                 conn.close()
 
-                if recent_errors:
-                    df_errors = pd.DataFrame(recent_errors, columns=[
-                        "Timestamp", "User Email", "Method", "Path", "Status Code", "Message"])
-                    st.error(f"{len(recent_errors)} error(s) detected in the last 10 minutes.")
-                    st.dataframe(df_errors, use_container_width=True)
+                if logs:
+                    df_logs = pd.DataFrame(logs, columns=[
+                        "Timestamp", "User Email", "Method", "Path", "Status Code", "Message"
+                    ])
+                    st.dataframe(df_logs, use_container_width=True)
                 else:
-                    st.success("✅ No critical errors in the last 10 minutes.")
-            except Exception as e:
-                st.error(f"❌ Error reading log database: {e}")
+                    st.info("No logs available.")
 
+            except Exception as e:
+                st.error(f"❌ Error reading logs: {e}")
+
+    try:
+        conn = sqlite3.connect("eventflow_logs.db")
+        cursor = conn.cursor()
+        ten_minutes_ago = datetime.utcnow() - timedelta(minutes=10)
+        cursor.execute('''
+            SELECT timestamp, user_email, ip, pattern, path
+            FROM alerts
+            WHERE timestamp >= ?
+            ORDER BY timestamp DESC
+        ''', (ten_minutes_ago.isoformat(),))
+        alerts = cursor.fetchall()
+        conn.close()
+
+        if alerts:
+            for alert in alerts:
+                timestamp, email, ip, pattern, path = alert
+                st.toast(
+                    f"⚠️ [{pattern}] from {email} at {ip} on {path}",
+                    icon="🚨"
+                )
+        else:
+            st.success("✅ No suspicious activity detected recently.")
+
+    except Exception as e:
+        st.error(f"❌ Error reading alerts: {e}")
+        with st.expander("⚠️ Suspicious Activity"):
+            conn = sqlite3.connect("eventflow_logs.db")
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT timestamp, user_email, method, path, status_code, message 
+                FROM logs 
+                WHERE message LIKE '%<script>%' OR path LIKE '%union%' OR path LIKE '%/../%'
+                ORDER BY timestamp DESC LIMIT 100
+            """)    
+            rows = cursor.fetchall()
+            conn.close()
+
+            if rows:
+                st.error(f"{len(rows)} suspicious log(s) detected.")
+                df_suspicious = pd.DataFrame(rows, columns=["Time", "User", "Method", "Path", "Status", "Message"])
+                st.dataframe(df_suspicious)
+            else:
+                st.success("✅ No suspicious activity detected.")
+                
+        with st.expander("🚨 Suspicious Activity Alerts"):
+            try:
+                conn = sqlite3.connect("eventflow_logs.db")
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT timestamp, user_email, ip, pattern, path
+                    FROM alerts
+                    ORDER BY timestamp DESC
+                    LIMIT 100
+                ''')
+                alerts = cursor.fetchall()
+                conn.close()
+
+                if alerts:
+                    df_alerts = pd.DataFrame(alerts, columns=["Timestamp", "User Email", "IP", "Pattern Detected", "Path"])
+                    st.warning("🚨 Suspicious patterns detected in the last 100 logs:")
+                    st.dataframe(df_alerts, use_container_width=True)
+                else:
+                    st.success("✅ No suspicious activity detected.")
+            except Exception as e:
+                st.error(f"❌ Error reading alerts: {e}")
 
         st.markdown("---")
         if st.button("Log out"):
