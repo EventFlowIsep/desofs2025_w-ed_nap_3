@@ -28,6 +28,7 @@ from datetime import datetime, timedelta
 import subprocess
 import socket
 from app.logging_db import SQLiteLogger
+from fastapi import Request
 
 SQLiteLogger()
 
@@ -60,6 +61,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+DANGEROUS_PATTERNS = [
+    r"<\s*script.*?>.*?<\s*/\s*script\s*>",
+    r"on\w+\s*=",
+    r"javascript:",
+    r"\{\{.*?\}\}",
+    r"<[^>]*>"
+]
+
+def sanitize_input(data: dict):
+    for key, value in data.items():
+        if isinstance(value, str):
+            for pattern in DANGEROUS_PATTERNS:
+                if re.search(pattern, value, flags=re.IGNORECASE | re.DOTALL):
+                    raise HTTPException(status_code=400, detail=f"Insecure input detected in field '{key}'")
+        elif isinstance(value, dict):
+            sanitize_input(value)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    sanitize_input(item)
 
 
 def hash_token(token: str) -> str:
@@ -280,16 +302,17 @@ async def create_event(req: Request, user=Depends(verify_token)):
         raise HTTPException(status_code=400, detail="No categories found. Please create categories first.")
     try:
         body = await req.json()
+        sanitize_input(body)
     except Exception as e:
         user_email = user.get("email", "anonymous") if user else "anonymous"
         logger.error(f"Deserialization failure from user {user_email} on {req.method} {req.url}: {e}")
         raise HTTPException(status_code=400, detail="Invalid JSON")
     
-    title = body.get("title")
+    title = html.escape(body.get("title", ""))
     date = body.get("date")
-    description = body.get("description", "")
-    image_url = body.get("image_url", "")
-    category = body.get("category")
+    description = html.escape(body.get("description", ""))
+    image_url = html.escape(body.get("image_url", ""))
+    category = html.escape(body.get("category", ""))
 
     if category not in [cat["name"] for cat in categories]:
         raise HTTPException(status_code=400, detail="Invalid category.")
@@ -328,6 +351,7 @@ def cancel_event(req: Request, event_id: str, user=Depends(verify_token)):
 async def post_comment(event_id: str, req: Request, user=Depends(verify_token)):
     try:
         body = await req.json()
+        sanitize_input(body)
     except:
         user_email = user.get("email", "anonymous") if user else "anonymous"
         logger.error(f"Deserialization failure from user {user_email} on {req.method} {req.url}: {e}")
@@ -345,8 +369,8 @@ async def post_comment(event_id: str, req: Request, user=Depends(verify_token)):
         raise HTTPException(status_code=404, detail="Event not found")
 
     comment = {
-        "author": author,
-        "text": text,
+        "author": html.escape(author),
+        "text": html.escape(text),
         "timestamp": datetime.utcnow().isoformat()
     }
     doc_ref.update({"comments": firestore.ArrayUnion([comment])})
@@ -373,7 +397,8 @@ def update_event(req: Request, event_id: str, update: EventUpdate, user=Depends(
     event_doc = event_ref.get()
     if not event_doc.exists:
         raise HTTPException(status_code=404, detail="Event not found")
-
+    
+    sanitize_input(update.dict())
     update_data = {k: v for k, v in update.dict().items() if v is not None}
     if "date" in update_data:
         try:
@@ -430,6 +455,7 @@ class Category(BaseModel):
 
 @app.post("/categories")
 def create_category(req: Request, category: Category, user=Depends(verify_token)):
+    sanitize_input(category.dict())
     if user["role"] != "Admin":
         logger.warning(f"Access denied for user {user['email']} on {req.method} {req.url} - Forbidden")
         raise HTTPException(status_code=403, detail="Only Admin can create categories.")
@@ -511,6 +537,7 @@ def delete_comment(req: Request,event_id: str, comment: CommentToDelete, user=De
             logger.warning(f"Access denied for user {user['email']} on {req.method} {req.url} - Forbidden")
             raise HTTPException(status_code=403, detail="Permission denied.")
 
+    sanitize_input(comment_dict)
     comment_dict = comment.dict()
     existing_comments = event_data.get("comments", [])
     event_ref = db.collection("events").document(event_id)

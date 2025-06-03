@@ -4,6 +4,7 @@ from firebase_admin import credentials, auth, initialize_app
 import firebase_admin
 import pandas as pd
 import datetime
+import sys
 import os
 from dotenv import load_dotenv
 from google.cloud import firestore
@@ -11,6 +12,12 @@ from datetime import datetime, timedelta
 import json
 import sqlite3
 from streamlit_autorefresh import st_autorefresh
+from datetime import timezone
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from app.logging_db import SQLiteLogger
+import re
+
+SQLiteLogger()
 
 RATE_LIMIT = 5
 
@@ -60,6 +67,15 @@ def verify_admin_token(token):
     except Exception:
         return False
 
+def sanitize_input(text):
+    if not isinstance(text, str):
+        return text
+    text = re.sub(r"(?i)<script.*?>.*?</script>", "", text)
+    text = re.sub(r"(?i)on\w+\s*=", "", text)
+    text = re.sub(r"[{}$]", "", text)
+    return text
+
+
 # Assign role via Firebase Admin
 def assign_user_role(email, role):
     try:
@@ -71,6 +87,7 @@ def assign_user_role(email, role):
         return f"❌ Error: {e}"
 
 # Get user role
+@st.cache_data(ttl=60)
 def get_user_role(email):
     try:
         user = auth.get_user_by_email(email)
@@ -80,6 +97,7 @@ def get_user_role(email):
         return f"❌ Error: {e}"
 
 # List all users with roles
+@st.cache_data(ttl=60)
 def list_users_with_roles():
     users = auth.list_users().iterate_all()
     data = []
@@ -106,15 +124,24 @@ def create_category(name):
 def list_categories():
     categories_ref = db.collection('categories')
     categories = categories_ref.stream()
+    all_events = list(db.collection('events').stream())  # Uma só chamada para eventos
+
+    category_counts = {}
+    for event in all_events:
+        data = event.to_dict()
+        cat = data.get("category")
+        if cat:
+            category_counts[cat] = category_counts.get(cat, 0) + 1
+
     category_data = []
     for category in categories:
-        category_info = category.to_dict()
-        events_ref = db.collection('events').where('category', '==', category_info['name'])
-        event_count = len(list(events_ref.stream()))
+        name = category.id
+        count = category_counts.get(name, 0)
         category_data.append({
-            "Category": category_info['name'],
-            "Number of Events": event_count
+            "Category": name,
+            "Number of Events": count
         })
+
     return pd.DataFrame(category_data)
 
 # Log changes
@@ -215,7 +242,7 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
             category_name = st.text_input("Enter category name", key="category_name")
             if st.button("Create Category"):
                 if category_name:
-                    result = create_category(category_name)
+                    result = sanitize_input(category_name)
                     st.success(result)
                 else:
                     st.warning("❌ Category name is required.")
@@ -253,8 +280,8 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
             st.subheader("📄 Last 100 Logs")
             try:
                 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "app", "eventflow_logs.db")
-                conn = sqlite3.connect("eventflow_logs.db")
-                cursor = conn.cursor(DB_PATH)
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
                 cursor.execute('''
                     SELECT timestamp, user_email, method, path, status_code, message
                     FROM logs
@@ -276,9 +303,9 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
                 st.error(f"❌ Error reading logs: {e}")
 
     try:
-        conn = sqlite3.connect("eventflow_logs.db")
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        ten_minutes_ago = datetime.utcnow() - timedelta(minutes=10)
+        ten_minutes_ago = datetime.now(timezone.utc) - timedelta(minutes=10)
         cursor.execute('''
             SELECT timestamp, user_email, ip, pattern, path
             FROM alerts
@@ -301,7 +328,7 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
     except Exception as e:
         st.error(f"❌ Error reading alerts: {e}")
         with st.expander("⚠️ Suspicious Activity"):
-            conn = sqlite3.connect("eventflow_logs.db")
+            conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT timestamp, user_email, method, path, status_code, message 
@@ -321,7 +348,7 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
                 
         with st.expander("🚨 Suspicious Activity Alerts"):
             try:
-                conn = sqlite3.connect("eventflow_logs.db")
+                conn = sqlite3.connect(DB_PATH)
                 cursor = conn.cursor()
                 cursor.execute('''
                     SELECT timestamp, user_email, ip, pattern, path

@@ -12,6 +12,7 @@ from google.cloud import firestore
 from datetime import date
 import time
 import json
+import re
 
 if 'last_request_time' not in st.session_state:
     st.session_state.last_request_time = 0
@@ -50,6 +51,14 @@ if "category" not in st.session_state:
     st.session_state.category = ""
 
 DEFAULT_TIMEOUT = 30
+
+def sanitize_input(text):
+    if not isinstance(text, str):
+        return text
+    text = re.sub(r"(?i)<script.*?>.*?</script>", "", text)
+    text = re.sub(r"(?i)on\w+\s*=", "", text)
+    text = re.sub(r"[{}$]", "", text)
+    return text
 
 def get_user_role(token):
     headers = {"Authorization": f"Bearer {token}"}
@@ -140,10 +149,10 @@ if st.session_state.page == "main":
                 
                 if st.button("Create Event"):
                     payload = {
-                        "title": st.session_state.title,
+                        "title": sanitize_input(st.session_state.title),
                         "date": str(st.session_state.date),
-                        "description": st.session_state.description,
-                        "category": selected_category
+                        "description": sanitize_input(st.session_state.description),
+                        "category": sanitize_input(selected_category)
                     }
                     try:
                         headers = {"Authorization": f"Bearer {st.session_state.token}"}
