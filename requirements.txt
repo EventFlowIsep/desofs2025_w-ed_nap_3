@@ -19,3 +19,4 @@ firebase-admin==6.4.0
 jinja2
 zxcvbn
 streamlit-autorefresh
+h11>=0.16.0 # not directly required, pinned by Snyk to avoid a vulnerability
