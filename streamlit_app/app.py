@@ -9,7 +9,14 @@ import sys
 from modules import create_event, cancel_events, view_events
 from dotenv import load_dotenv
 from google.cloud import firestore
-import datetime
+from datetime import date
+import time
+import json
+import re
+
+if 'last_request_time' not in st.session_state:
+    st.session_state.last_request_time = 0
+RATE_LIMIT = 5 
 
 
 st.set_page_config(
@@ -37,20 +44,40 @@ if "auth_mode" not in st.session_state:
 if "title" not in st.session_state:
     st.session_state.title = ""
 if "date" not in st.session_state:
-    st.session_state.date = datetime.date.today()
+    st.session_state.date = date.today()
 if "description" not in st.session_state:
     st.session_state.description = ""
 if "category" not in st.session_state:
     st.session_state.category = ""
 
-DEFAULT_TIMEOUT = 10
+DEFAULT_TIMEOUT = 30
+
+def sanitize_input(text):
+    if not isinstance(text, str):
+        return text
+    text = re.sub(r"(?i)<script.*?>.*?</script>", "", text)
+    text = re.sub(r"(?i)on\w+\s*=", "", text)
+    text = re.sub(r"[{}$]", "", text)
+    return text
 
 def get_user_role(token):
     headers = {"Authorization": f"Bearer {token}"}
-    res = requests.get(f"{API_URL}/verify-token", headers=headers, timeout=DEFAULT_TIMEOUT)
-    if res.status_code == 200:
+    try:
+        res = requests.get(f"{API_URL}/verify-token", headers=headers, timeout=DEFAULT_TIMEOUT)
+        res.raise_for_status()
         return res.json().get("role", "client")
-    return "client"
+    except requests.exceptions.RequestException as e:
+        st.error(f"Request failed: {e}")
+        return "client"
+    except ValueError:
+        st.error("Failed to decode JSON response.")
+        return "client"
+
+current_time = time.time()
+if current_time - st.session_state.last_request_time < RATE_LIMIT:
+    st.warning("Please wait before making another request.")
+else:
+    st.session_state.last_request_time = current_time
 
 # Auto-login from Google redirect
 token_param = st.query_params.get("token")
@@ -79,10 +106,11 @@ def list_categories():
     return category_names
 
 def reset_form():
-                st.session_state.title = ""
-                st.session_state.date = datetime.date.today()
-                st.session_state.description = ""
-                st.session_state.category = ""
+    st.session_state.title = ""
+    st.session_state.date = date.today()
+    st.session_state.description = ""
+    st.session_state.category = ""
+
 
 # Redirect after login
 if st.session_state.page == "main":
@@ -93,6 +121,7 @@ if st.session_state.page == "main":
     if "token" in st.session_state and st.session_state.token:
     # Menu based on role
         menu_options = ["View Events"]  # all have access
+        menu_options.append("User Settings")
 
         if st.session_state.user_role in ["Admin", "Event_manager"]:
             menu_options.append("Create Event")
@@ -103,7 +132,7 @@ if st.session_state.page == "main":
 
         selected = st.sidebar.selectbox("Choose an action", menu_options)
 
-    # Routing
+# Routing
         if selected == "View Events":
             view_events.show()
 
@@ -120,14 +149,14 @@ if st.session_state.page == "main":
                 
                 if st.button("Create Event"):
                     payload = {
-                        "title": st.session_state.title,
+                        "title": sanitize_input(st.session_state.title),
                         "date": str(st.session_state.date),
-                        "description": st.session_state.description,
-                        "category": selected_category
+                        "description": sanitize_input(st.session_state.description),
+                        "category": sanitize_input(selected_category)
                     }
                     try:
                         headers = {"Authorization": f"Bearer {st.session_state.token}"}
-                        res = requests.post(f"{API_URL}/events/create", json=payload, headers=headers, timeout=10)
+                        res = requests.post(f"{API_URL}/events/create", json=payload, headers=headers, timeout=DEFAULT_TIMEOUT)
                         if res.status_code == 200:
                             st.success("✅ Event created successfully.")
                             reset_form()
@@ -146,10 +175,26 @@ if st.session_state.page == "main":
             else:
                 st.warning("❌ You do not have permission to cancel events.")
 
+        elif selected == "User Settings":
+            st.subheader("User Settings")
+
+            headers = {"Authorization": f"Bearer {st.session_state.token}"}
+            res = requests.get(f"{API_URL}/user/email", headers=headers)
+            if res.status_code == 200:
+                email = res.json().get("email")
+                st.text_input("Your Email", value=email, disabled=True)
+
+            if st.button("Reset Password"):
+                reset_response = requests.post(f"{API_URL}/user/reset_password", json={"email": email})
+                if reset_response.status_code == 200:
+                    st.success("Password reset email sent.")
+                else:
+                    st.error("Error sending password reset email.")
+
     else:
         st.sidebar.warning("🔐 Please log in to access features.")
         st.write("Welcome to EventFlow. Log in to get started.")
-    
+
     st.sidebar.markdown("---")
     if st.sidebar.button("🚪 Log out"):
         st.session_state.token = None
