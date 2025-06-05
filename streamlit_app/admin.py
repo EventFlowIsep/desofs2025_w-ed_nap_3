@@ -13,9 +13,13 @@ import json
 import sqlite3
 from streamlit_autorefresh import st_autorefresh
 from datetime import timezone
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from app.logging_db import SQLiteLogger
 import re
+
+
 
 SQLiteLogger()
 
@@ -39,6 +43,8 @@ if not firebase_admin._apps:
 db = firestore.Client.from_service_account_json("app/firebase_key.json")
 
 LOG_PATH = "admin_logs.csv"
+
+DB_PATH = os.path.join(os.path.dirname(__file__), "..", "app", "eventflow_logs.db")
 
 st.set_page_config(page_title="Admin Login | EventFlow", page_icon="🔐")
 
@@ -301,8 +307,9 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
 
             except Exception as e:
                 st.error(f"❌ Error reading logs: {e}")
-
+    
     try:
+        DB_PATH = os.path.join(os.path.dirname(__file__), "..", "app", "eventflow_logs.db")
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         ten_minutes_ago = datetime.now(timezone.utc) - timedelta(minutes=10)
@@ -328,6 +335,7 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
     except Exception as e:
         st.error(f"❌ Error reading alerts: {e}")
         with st.expander("⚠️ Suspicious Activity"):
+            DB_PATH = os.path.join(os.path.dirname(__file__), "..", "app", "eventflow_logs.db")
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
             cursor.execute("""
