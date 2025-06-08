@@ -5,119 +5,45 @@
 | 2025-05-20 | Revisão de todos os testes de segurança com ferramentas SAST (Bandit, Semgrep)                  | Rafael       | 1.0    |
 | 2025-05-22 | Melhorias nos testes SCA de forma a obter um relatório completo do snyk                         | Rafael       | 2.0    |
 | 2025-05-25 | Testes finais antes do final sprint 1                                                           | Rafael       | 3.0    |
+| 2025-06-03 | Reformulação do plano de segurança, eliminação de redundâncias e integração com OWASP Top 10    | Rafael       | 4.0    |
 
 # 🔐 Segurança na Aplicação EventFlow
 
-## 1.1 Validação Estática de Código (SAST) com Bandit
+## ✅ Resumo das Medidas de Segurança
 
-Durante a fase de testes de segurança automatizados, foi utilizada a ferramenta [Bandit](https://bandit.readthedocs.io/en/latest/) para analisar o código Python da aplicação. Um dos alertas críticos identificados foi:
-
-### ⚠️ Alerta: B113 – `requests` sem `timeout`
-- **Descrição:** Chamadas às funções `requests.get()` e `requests.post()` sem parâmetro `timeout` definido podem causar bloqueios indefinidos da aplicação.
-- **Risco:** Exploração via ataque de negação de serviço (DoS) ou impacto na disponibilidade.
-- **Ficheiros afetados:** `app.py`, `admin.py`
-
-### 🛠️ Correção Implementada
-Foi definido um `DEFAULT_TIMEOUT = 10` e aplicado consistentemente nas chamadas relevantes:
-
-```python
-# Antes:
-requests.post(url, json=payload)
-
-# Depois:
-requests.post(url, json=payload, timeout=DEFAULT_TIMEOUT)
-```
+| Área                                | Ferramenta/Implementação                      | Estado |
+|-------------------------------------|-----------------------------------------------|--------|
+| Validação Estática (SAST)          | Bandit, Semgrep                               | ✅     |
+| Análise de Dependências (SCA)      | Snyk                                          | ✅     |
+| Validação JWT + Claims             | Firebase Auth                                 | ✅     |
+| Proteção contra XSS e JSON Scripts | Sanitização manual (regex)                    | ✅     |
+| Rate Limiting                      | Rate limit por IP via `session_state`         | ✅     |
+| Logs de Segurança                  | `eventflow_logs.db` e `admin_logs.csv`        | ✅     |
+| Painel de Gestão de Roles          | Acesso restrito via autenticação e claims     | ✅     |
 
 ---
 
-## 1.2 Implementação de Claims Personalizados (Custom Claims)
+### 1. Alertas Identificados com Bandit e Semgrep
 
-A aplicação utiliza Firebase Authentication com **JWTs** contendo *claims personalizados* para representar a role do utilizador (`client`, `admin`, `event_manager`, etc.).
+#### ⚠️ B113 – `requests` sem `timeout`
+- **Descrição:** Pode causar bloqueios indefinidos.
+- **Correção:** Aplicação do `timeout=DEFAULT_TIMEOUT` em todos os pedidos externos.
+- **Ficheiros:** `app.py`, `admin.py`, `view_events.py`, `cancel_events.py`, `create_event.py`
 
-- **Definição:** feita via `auth.set_custom_user_claims(uid, { "role": "admin" })`
-- **Verificação:** feita no backend via `verify_id_token(token)["role"]`
+#### ⚠️ B112 – `try-except` com `continue`
+- **Descrição:** Pode mascarar erros importantes.
+- **Correção:** Refatorado para capturar exceções específicas.
+- **Ficheiro:** `main.py`
 
-### 🔒 Proteção de Endpoints
+#### ⚠️ B101 – Uso de `assert`
+- **Descrição:** `assert` é ignorado em bytecode otimizado.
+- **Correção:** Substituído por `if` + `raise Exception`.
+- **Ficheiros:** `tests/admin_test.py`, `tests/client_test.py`
 
-Os endpoints mais sensíveis do backend estão protegidos com:
-- Autenticação via `Bearer Token` (JWT)
-- Autorização baseada em `role` do utilizador
-
-Exemplo:
-
-```python
-@app.post("/events/create")
-async def create_event(..., user=Depends(verify_token)):
-    if user["role"] not in ["admin", "event_manager"]:
-        raise HTTPException(status_code=403, detail="Forbidden")
-```
 
 ---
 
-## 1.3 Melhoria na Segurança das Variáveis Sensíveis
-
-- **Variáveis como a Firebase API Key** foram movidas para o ficheiro `.env`, carregado com `load_dotenv()`.
-- Criado `.env.example` para partilha segura entre membros da equipa sem expor chaves reais.
-
----
-
-## 1.4 Outras Medidas Adicionais
-
-| Medida                         | Estado    |
-|-------------------------------|-----------|
-| Validação de tokens JWT       | ✅ Ativa   |
-| Middleware CORS               | ✅ Ativa   |
-| Ocultação de menus por role   | ✅ Implementada em `app.py` |
-| Logs de atribuição de roles   | ✅ Guardados em `admin_logs.csv` |
-| Painel de gestão de roles     | ✅ Acessível apenas a `admin` verificados |
-
----
-**Atualização feita a:** 2025-05-20
-
-
-## 2.1 Validação Estática de Código (SAST) com Bandit e Semgrep
-
-⚠️ Alertas principais do Bandit
-
-## B113 - requests sem timeout
-
-Descrição: Chamadas às funções requests.get() e requests.post() sem o parâmetro timeout definido podem provocar bloqueios indefinidos da aplicação.
-
-Risco: Exploração possível via ataques de negação de serviço (DoS), afetando a disponibilidade do serviço.
-
-Ficheiros afetados: streamlit_app/modules/cancel_events.py, streamlit_app/modules/create_event.py, streamlit_app/modules/view_events.py
-
-## B112 - Uso de try-except com continue
-
-Descrição: Utilização de try-except com continue pode mascarar erros importantes, dificultando o diagnóstico e a correção.
-
-Ficheiro: app/main.py
-
-## B101 - Uso de assert
-
-Descrição: Uso de assert em código que pode ser removido em bytecode otimizado, afetando verificações em produção.
-
-Ficheiro: tests/test_basic.py
-
-🛠️ Correções Implementadas
-Foi definido um DEFAULT_TIMEOUT = 10 segundos, aplicado em todas as chamadas HTTP relevantes, garantindo que a aplicação não fica bloqueada indefinidamente:
-
-# Antes:
-requests.post(url, json=payload)
-
-# Depois:
-requests.post(url, json=payload, timeout=DEFAULT_TIMEOUT)
-Além disso, foram revistas as estruturas de tratamento de exceções para evitar ocultar erros importantes.
-
-## 2.2 Riscos e Impacto
-
-Chamadas a requests sem timeout podem levar a bloqueios indefinidos da aplicação se o servidor remoto não responder, possibilitando ataques DoS.
-
-Uso inadequado de try-except pode mascarar erros críticos, dificultando a deteção e correção.
-
-Uso de assert no código de produção pode levar a comportamentos inesperados quando otimizações do Python estiverem ativadas.
-
-## 2.3 Testes SCA (Software Composition Analysis)
+## 2. Testes SCA (Software Composition Analysis)
 Durante a análise de segurança das dependências externas do projeto, foram utilizados os seguintes scanners:
 
 - **Objetivo:** Detectar vulnerabilidades conhecidas nas bibliotecas Python usadas.
@@ -129,8 +55,6 @@ Durante a análise de segurança das dependências externas do projeto, foram ut
 | tornado    | 6.4.2        | GHSA-7cx3-6m66-7c5m   | 6.5.0                     |
 
 - **Ação Recomendada:** Atualizar as bibliotecas para as versões sugeridas para mitigar vulnerabilidades conhecidas.
-
-### 2.3.1 Snyk
 
 Durante a análise de segurança das dependências com a ferramenta Snyk, foi identificada uma vulnerabilidade de alta severidade no pacote tornado na versão utilizada atualmente (6.4.2).
 
@@ -153,66 +77,55 @@ GitHub Commit de Correção
 Pacote e Versão Afetados
 Pacote: tornado
 
-Versão atual usada: 6.4.2
-
-Versão segura recomendada: >= 6.5
-
 Impacto Potencial
 Ataques de negação de serviço (DoS)
 
 Impacto na disponibilidade do sistema
 
-Correção implementada:
+# Correção Implementada:
 # Antes:
 tornado==6.4.2
 
 # Depois:
 tornado==6.5.0
 
-Enquanto a atualização não é possível, pode ser aplicada uma mitigação bloqueando requisições com o header Content-Type: multipart/form-data em um proxy reverso ou firewall.
+---
 
-## 2.3.2 Análise do Relatório Snyk - Tornado Vulnerabilidade Crítica
+## 3. Implementação de Claims Personalizados (Custom Claims) + Autorização por Role
 
-- Pacote afetado: tornado 6.4.2
-- Identificador: SNYK-PYTHON-TORNADO-10176059
-- Severidade: Alta (CVSS 8.7)
-- Descrição: Vulnerabilidade no parser multipart/form-data que pode causar negação de serviço (DoS) por excessivo logging.
-- Correção recomendada: Atualizar para tornado versão 6.5 ou superior.
-- Referências: [GitHub Commit](https://github.com/tornadoweb/tornado/commit/b39b892bf78fe8fea01dd45199aa88307e7162f3)
+A aplicação utiliza Firebase Authentication com **JWTs** contendo *claims personalizados* para representar a role do utilizador (`client`, `admin`, `event_manager`, etc.).
 
+- **Definição:** feita via `auth.set_custom_user_claims(uid, { "role": "admin" })`
+- **Verificação:** feita no backend via `verify_id_token(token)["role"]`
 
-**Atualização feita a:** 2025-05-22
+### 🔒 Proteção de Endpoints
 
-
-## 3.1 Validação Estática de Código (SAST) com Bandit
-
-### ⚠️ Alerta: B112 – Uso de try-except com continue
-- **Descrição:** A utilização do try-except com a instrução continue foi identificada no código. Esse padrão pode mascarar erros importantes, dificultando a detecção e correção de falhas no sistema.
-- **Risco:** Pode ocultar exceções críticas, prejudicando a análise de erros e a estabilidade da aplicação.
-- **Ficheiros afetados:** `main.py`
-
-### 🛠️ Correção Implementada
-
-A lógica de tratamento de exceções foi alterada para garantir que os erros sejam tratados de forma adequada e não sejam ignorados silenciosamente. O código que anteriormente usava try-except com continue foi refatorado para capturar exceções específicas e fornecer mensagens de erro mais claras.
-
-
-### ⚠️ Alerta: B101 – Uso de assert
-- **Descrição:** O uso de assert no código de produção pode levar a falhas quando o Python estiver compilando para bytecode otimizado, uma vez que os asserts são removidos nessas situações.
-- **Risco:** O uso de assert pode resultar em falhas invisíveis em ambientes de produção, onde as verificações de segurança são críticas.
-- **Ficheiros afetados:** `tests/admin_test.py`, `tests/client_test.py`
-
-### 🛠️ Correção Implementada
-O uso de assert foi substituído por verificações explícitas e tratamento adequado de erros para garantir que as falhas sejam capturadas mesmo em ambientes otimizados.
-
-```python
-# Antes:
-assert res.status_code == 200
-
-# Depois:
-if res.status_code != 200:
-    raise AssertionError(f"Expected status code 200, but got {res.status_code}")
-```
+Os endpoints mais sensíveis do backend estão protegidos com:
+- Autenticação via `Bearer Token` (JWT)
+- Autorização baseada em `role` do utilizador
 
 ---
 
-**Atualização feita a:** 2025-05-20
+## 4. Melhoria na Segurança das Variáveis Sensíveis
+
+- **Variáveis como a Firebase API Key** foram movidas para o ficheiro `.env`, carregado com `load_dotenv()`.
+- Criado `.env.example` para partilha segura entre membros da equipa sem expor chaves reais.
+
+---
+
+## 5. OWASP Top 10 (2021) – Cobertura
+
+| Código | Categoria                                  | Estado            | Local de Implementação / Justificação                                       |
+|--------|--------------------------------------------|-------------------|-----------------------------------------------------------------------------|
+| A01    | Broken Access Control                      | ✅ Mitigado      | Verificação de roles no backend (`if user["role"] not in [...]`)            |
+| A02    | Cryptographic Failures                     | ✅ Mitigado      | Firebase usa HTTPS e tokens JWT assinados                                   |
+| A03    | Injection                                  | ✅ Mitigado      | Sanitização manual + Firestore (sem SQL)                                    |
+| A04    | Insecure Design                            | ✅ Parcial       | Design defensivo e autenticação bem definidos                               |
+| A05    | Security Misconfiguration                  | ✅ Mitigado      | `.env`, CORS middleware, API Gateway (manual)                               |
+| A06    | Vulnerable and Outdated Components         | ✅ Mitigado      | Uso do `snyk`, plano de atualização contínua                                |
+| A07    | Identification and Authentication Failures | ✅ Mitigado      | Firebase Auth + verificação de role                                         |
+| A08    | Software and Data Integrity Failures       | ❌ Não aplicável | A aplicação não executa código externo nem usa auto-updates                 |
+| A09    | Security Logging and Monitoring Failures   | ✅ Mitigado      | Logs persistentes em SQLite + alertas automáticos                           |
+| A10    | SSRF (Server-Side Request Forgery)         | ✅ Mitigado      | A aplicação não faz chamadas dinâmicas para URLs fornecidas pelo utilizador |
+
+---
