@@ -69,6 +69,7 @@ jobs:
       - name: Build and run services with Docker Compose
         run: |
           docker compose -f docker-compose.yml up -d --build
+          docker compose up
       - name: Verificar serviços ativos (docker ps)
         run: docker ps
 
