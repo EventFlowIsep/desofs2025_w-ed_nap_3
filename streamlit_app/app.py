@@ -6,9 +6,11 @@ from PIL import Image
 import streamlit.components.v1 as components
 import streamlit.web.cli as stcli
 import sys
+import hashlib
 from modules import create_event, cancel_events, view_events
 from dotenv import load_dotenv
 from google.cloud import firestore
+from zxcvbn import zxcvbn
 from datetime import date
 import time
 import json
@@ -87,6 +89,28 @@ if token_param and not st.session_state.token:
     st.session_state.page = "main"
     st.query_params.clear()
     st.rerun()
+
+def check_password_requirements(password):
+    if len(password.strip()) < 12:
+        return False, "❌ A password deve ter pelo menos 12 caracteres."
+    if len(password.strip()) > 128:
+        return False, "❌ A password não pode exceder 128 caracteres."
+    if not password.strip():
+        return False, "❌ A password não pode estar vazia ou conter apenas espaços."
+
+    # Verifica força com zxcvbn
+    strength = zxcvbn(password)
+    if strength['score'] < 3:
+        return False, "❌ Password fraca. Use símbolos, maiúsculas e números."
+
+    # Verifica se foi comprometida via HaveIBeenPwned
+    hashed = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
+    prefix, suffix = hashed[:5], hashed[5:]
+    resp = requests.get(f"https://api.pwnedpasswords.com/range/{prefix}")
+    if resp.status_code == 200 and suffix in resp.text:
+        return False, "❌ Esta password já foi encontrada em vazamentos. Escolha outra."
+
+    return True, "✅ Password segura."
 
 def firebase_register(email, password):
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={FIREBASE_API_KEY}"
@@ -220,6 +244,7 @@ elif st.session_state.page == "auth":
                 st.session_state.token = token
                 st.session_state.user_role = get_user_role(token)
                 st.success("Login successful!")
+                st.session_state.user_email = res.json().get("email")
                 st.session_state.page = "main"
                 st.rerun()
             else:
@@ -253,14 +278,18 @@ elif st.session_state.page == "register":
     email = st.text_input("Email", key="reg_email")
     password = st.text_input("Password", type="password", key="reg_pass")
     if st.button("Register"):
-        res = firebase_register(email, password)
-        if res.status_code == 200:
-            st.success("✅ Registered! You can now log in.")
-            st.session_state.page = "auth"
-            st.session_state.auth_mode = "Email"
-            st.rerun()
+        valid, msg = check_password_requirements(password)
+        if not valid:
+            st.error(msg)
         else:
-            st.error("Registration failed: " + res.json().get("error", {}).get("message", "Unknown error"))
+            res = firebase_register(email, password)
+            if res.status_code == 200:
+                st.success("✅ Registered! You can now log in.")
+                st.session_state.page = "auth"
+                st.session_state.auth_mode = "Email"
+                st.rerun()
+            else:
+                st.error("Registration failed: " + res.json().get("error", {}).get("message", "Unknown error"))
 
     st.markdown("---")
     st.markdown("Already have an account?")
