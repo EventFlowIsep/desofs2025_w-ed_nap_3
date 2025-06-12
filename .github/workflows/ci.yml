@@ -97,6 +97,9 @@ jobs:
       FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
 
     steps:
+      - name: Install python-dotenv (if not already)
+        run: pip install python-dotenv
+
       - name: Checkout code
         uses: actions/checkout@v3
 
