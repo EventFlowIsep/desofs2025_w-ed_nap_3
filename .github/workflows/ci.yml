@@ -84,6 +84,10 @@ jobs:
           done
           echo "Backend não iniciou!";
           exit 1
+      - name: Ver logs do backend (FastAPI)
+        if: failure()
+        run: |
+          docker logs $(docker ps -aqf "name=backend") || true
 
       - name: Esperar pelo frontend (Streamlit)
         run: |
