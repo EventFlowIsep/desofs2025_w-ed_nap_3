@@ -72,7 +72,7 @@ jobs:
       - name: Verificar serviços ativos (docker ps)
         run: docker ps
 
-      - name: Esperar pelo backend (FastAPI)
+      - name: Esperar pelo backend
         run: |
           for i in {1..15}; do
             if curl -s http://localhost:8000/docs > /dev/null; then
@@ -84,12 +84,12 @@ jobs:
           done
           echo "Backend não iniciou!";
           exit 1
-      - name: Ver logs do backend (FastAPI)
+      - name: Ver logs do backend
         if: failure()
         run: |
           docker logs $(docker ps -aqf "name=backend") || true
 
-      - name: Esperar pelo frontend (Streamlit)
+      - name: Esperar pelo frontend
         run: |
           for i in {1..15}; do
             if curl -s http://localhost:8501 > /dev/null; then
