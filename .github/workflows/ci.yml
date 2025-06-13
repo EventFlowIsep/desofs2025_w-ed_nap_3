@@ -116,8 +116,10 @@ jobs:
       - name: Install test dependencies
         run: pip install requests python-dotenv
 
-      - name: Wait for services to be ready
-        run: sleep 10
+      - name: Exportar tokens DAST para o ambiente
+        run: |
+          echo "ADMIN_CRED_DAST=${{ secrets.ADMIN_CRED_DAST }}" >> $GITHUB_ENV
+          echo "CLIENT_CRED_DAST=${{ secrets.CLIENT_CRED_DAST }}" >> $GITHUB_ENV
 
       - name: Debug curl backend antes do DAST
         run: curl -v http://localhost:8000/auth/google_login.html
