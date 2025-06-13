@@ -2,7 +2,7 @@ import requests
 import json
 
 # Dados do user
-email = "testuser@gmail.com"      # O email que criaste no script anterior
+email = "adminuser@gmail.com"      # O email que criaste no script anterior
 password = "1q2w3e4r5t6y"        # A password que escolheste
 api_key = "AIzaSyAHeLl9iaCku3LpBr0L-6Q3vMHQevgIw8c"  # Do teu .env
 
