@@ -76,7 +76,7 @@ jobs:
       - name: Esperar pelo backend
         run: |
           for i in {1..15}; do
-            if curl -s http://localhost:8000 > /dev/null; then
+            if curl -s http://localhost:8000/events > /dev/null; then
               echo "Backend está ativo!";
               exit 0
             fi
