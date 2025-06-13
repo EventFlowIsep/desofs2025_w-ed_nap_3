@@ -1,13 +1,13 @@
-streamlit
+streamlit>=1.43.2
 requests
-pillow
+pillow>=10.0.1
 pandas
 matplotlib
-fastapi
+fastapi>=0.109.1
 uvicorn>=0.18.0
 setuptools==74.1.1
 cloudinary
-bandit 
+bandit>=1.7.7
 pip-audit
 python-dotenv
 tornado>=6.5
@@ -16,3 +16,6 @@ dotenv
 pytest
 httpx
 firebase-admin==6.4.0
+jinja2
+zxcvbn
+streamlit-autorefresh
