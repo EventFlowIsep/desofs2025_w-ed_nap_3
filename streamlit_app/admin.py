@@ -13,9 +13,13 @@ import json
 import sqlite3
 from streamlit_autorefresh import st_autorefresh
 from datetime import timezone
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from app.logging_db import SQLiteLogger
 import re
+
+
 
 SQLiteLogger()
 
@@ -39,6 +43,8 @@ if not firebase_admin._apps:
 db = firestore.Client.from_service_account_json("app/firebase_key.json")
 
 LOG_PATH = "admin_logs.csv"
+
+DB_PATH = os.path.join(os.path.dirname(__file__), "..", "app", "eventflow_logs.db")
 
 st.set_page_config(page_title="Admin Login | EventFlow", page_icon="🔐")
 
@@ -251,29 +257,6 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
             df = list_categories()
             st.dataframe(df)
 
-        with st.expander("View Backend Logs"):
-            st.subheader("📄 Backend Logs (last 100)")
-
-            if st.button("Fetch Logs"):
-                if st.session_state.admin_token:
-                    headers = {"Authorization": f"Bearer {st.session_state.admin_token}"}
-                    try:
-                        res = requests.get("http://localhost:8000/logs", headers=headers, timeout=DEFAULT_TIMEOUT)
-                        if res.status_code == 200:
-                            logs_data = res.json().get("logs", [])
-                            if logs_data:
-                                df_logs = pd.DataFrame(logs_data)
-                                st.dataframe(df_logs)
-                            else:
-                                st.info("No logs available.")
-                        else:
-                            st.error(f"Failed to fetch logs: {res.status_code}")
-                    except Exception as e:
-                        st.error(f"Error fetching logs: {e}")
-                        st.write("Error details:", e)
-                else:
-                    st.error("Admin token missing. Please log in again.")
-
         with st.expander("🚀 Real-Time Log Monitoring Dashboard"):
             st_autorefresh(interval=60 * 1000, key="log_refresh")
 
@@ -296,13 +279,19 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
                         "Timestamp", "User Email", "Method", "Path", "Status Code", "Message"
                     ])
                     st.dataframe(df_logs, use_container_width=True)
+                    if st.button("📅 Export Logs to CSV"):
+                        log_export_path = os.path.join(os.path.dirname(__file__), "..", "app", "eventflow_logs_export.csv")
+                        df_logs.to_csv(log_export_path, index=False)
+                        with open(log_export_path, "rb") as f:
+                            st.download_button("Download CSV", f, file_name="eventflow_logs_export.csv")
                 else:
                     st.info("No logs available.")
 
             except Exception as e:
                 st.error(f"❌ Error reading logs: {e}")
-
+    
     try:
+        DB_PATH = os.path.join(os.path.dirname(__file__), "..", "app", "eventflow_logs.db")
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         ten_minutes_ago = datetime.now(timezone.utc) - timedelta(minutes=10)
@@ -328,6 +317,7 @@ elif st.session_state.admin_page == "panel" and st.session_state.admin_verified:
     except Exception as e:
         st.error(f"❌ Error reading alerts: {e}")
         with st.expander("⚠️ Suspicious Activity"):
+            DB_PATH = os.path.join(os.path.dirname(__file__), "..", "app", "eventflow_logs.db")
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
             cursor.execute("""

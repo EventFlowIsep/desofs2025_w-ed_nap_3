@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
-from firebase_admin import credentials, auth, initialize_app
+from firebase_admin import credentials, auth, initialize_app, firestore
 from google.cloud import firestore
 import firebase_admin
 import os
@@ -274,6 +274,10 @@ def get_events(user=Depends(verify_token), page: int = Query(1, ge=1), per_page:
         for doc in docs:
             data = doc.to_dict()
             data["id"] = doc.id
+
+            if "registrations" not in data:
+                data["registrations"] = []
+
             events.append(data)
         
         in_memory_cache[cache_key] = {
@@ -436,18 +440,28 @@ def filter_events_by_date(start: str = Query(...), end: str = Query(...)):
 
 @app.post("/events/{event_id}/register")
 def register_for_event(event_id: str, user=Depends(verify_token)):
-    doc_ref = db.collection("events").document(event_id)
-    if not doc_ref.get().exists:
+    db = firestore.Client()
+    event_ref = db.collection("events").document(event_id)
+    event = event_ref.get()
+
+    if not event.exists:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    registration = {
-        "uid": user["uid"],
-        "email": user["email"],
-        "timestamp": datetime.utcnow().isoformat()
-    }
+    event_data = event.to_dict()
+    registrations = event_data.get("registrations", [])
 
-    doc_ref.update({"registrations": firestore.ArrayUnion([registration])})
-    return {"msg": "You have been registered for the event."}
+    user_email = user.get("email")
+    if not user_email:
+        raise HTTPException(status_code=400, detail="Email not found in token")
+
+    # Verifica se já está inscrito
+    if any(r.get("email") == user_email for r in registrations):
+        return {"message": "Already registered"}
+
+    registrations.append({"email": user_email})
+    event_ref.update({"registrations": registrations})
+
+    return {"message": "Registered successfully"}
 
 class Category(BaseModel):
     name: str
