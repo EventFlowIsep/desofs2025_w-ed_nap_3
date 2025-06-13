@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "app/firebase_key.json"
 
 if not firebase_admin._apps:
-    cred = credentials.Certificate("firebase_key.json")
+    cred = credentials.Certificate("app/firebase_key.json")
     initialize_app(cred)
 
 db = firestore.Client()
