@@ -36,6 +36,12 @@ jobs:
           echo "ADMIN_CRED=${{ secrets.ADMIN_CRED }}" >> $GITHUB_ENV
           echo "CLIENT_CRED=${{ secrets.CLIENT_CRED }}" >> $GITHUB_ENV
 
+      # Opcional: Ativa os teus testes de unidade aqui
+      #- name: Run Pytest
+      #  run: |
+      #    pip install pytest
+      #    pytest tests/
+
       - name: Run Bandit (SAST)
         continue-on-error: true
         run: |
@@ -67,7 +73,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and run services with Docker Compose
-        run: docker compose -f docker-compose.yml up -d --build
+        run: |
+          docker compose -f docker-compose.yml up -d --build
 
       - name: Verificar serviços ativos (docker ps)
         run: docker ps
@@ -85,7 +92,7 @@ jobs:
           echo "Backend não iniciou!";
           exit 1
 
-      - name: Ver logs do backend (em caso de falha)
+      - name: Ver logs do backend
         if: failure()
         run: |
           docker logs $(docker ps -aqf "name=backend") || true
@@ -103,7 +110,10 @@ jobs:
           echo "Frontend não iniciou!";
           exit 1
 
-      - name: Instalar dependências de teste
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install test dependencies
         run: pip install requests python-dotenv
 
       - name: Exportar tokens DAST para o ambiente
@@ -113,11 +123,11 @@ jobs:
 
       - name: Debug curl backend antes do DAST
         run: curl -v http://localhost:8000/auth/google_login.html
-
+        
       - name: Run DAST Python tests
         run: python security_tests/dast_tests.py
 
-      - name: Ver logs do backend (em caso de falha)
+      - name: Ver logs do backend
         if: failure()
         run: |
           docker logs $(docker ps -aqf "name=backend") || true
@@ -134,7 +144,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Instalar dependências de teste
+      - name: Install test dependencies
         run: pip install requests python-dotenv
 
       - name: Wait for services to be ready
@@ -146,7 +156,7 @@ jobs:
       - name: Run DAST Python tests
         run: python security_tests/dast_tests.py
 
-      - name: Ver logs do backend (em caso de falha)
+      - name: Ver logs do backend
         if: failure()
         run: |
           docker logs $(docker ps -aqf "name=backend") || true
