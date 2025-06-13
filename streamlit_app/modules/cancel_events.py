@@ -30,8 +30,10 @@ def show():
     try:
         res = requests.get(f"{API_URL}/events", headers=headers, timeout=DEFAULT_TIMEOUT)
         if res.status_code == 200:
-            events = res.json()
-            uncancelled = [e for e in events if not e.get("cancelled")]
+            data = res.json()
+            events = data.get("events", [])  # ✅ Proteção aqui
+            uncancelled = [e for e in events if not e.get("cancelled", False)]
+
             if not uncancelled:
                 st.info("📭 There are no active events to cancel.")
             else:
