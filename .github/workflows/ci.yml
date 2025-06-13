@@ -30,7 +30,7 @@ jobs:
           mkdir -p app
           echo "${{ secrets.FIREBASE_KEY_JSON_BASE64 }}" | base64 --decode > app/firebase_key.json
 
-      - name: Exportar variáveis de ambiente para os testes
+      - name: Export environment variables
         run: |
           echo "FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> $GITHUB_ENV
           echo "ADMIN_CRED=${{ secrets.ADMIN_CRED }}" >> $GITHUB_ENV
@@ -55,7 +55,7 @@ jobs:
           pip-audit
 
   deploy-staging:
-    name: Deploy to Docker (Staging - Streamlit)
+    name: Deploy to Docker Compose and DAST Tests (Staging)
     runs-on: ubuntu-latest
     needs: build-and-test
 
@@ -63,32 +63,60 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Recriar firebase_key.json a partir do segredo
+        run: |
+          mkdir -p app
+          echo "${{ secrets.FIREBASE_KEY_JSON_BASE64 }}" | base64 --decode > app/firebase_key.json
+
       - name: Set up Docker
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
-        run: docker build -t streamlit-app-staging .
+      - name: Build and run services with Docker Compose
+        run: docker compose -f docker-compose.yml up -d --build
 
-      - name: Run Docker container
-        run: docker run -d -p 8501:8501 streamlit-app-staging
+      - name: Verificar serviços ativos (docker ps)
+        run: docker ps
 
-  dast-test:
-    name: DAST - Custom Security Scan
-    runs-on: ubuntu-latest
-    needs: deploy-staging
+      - name: Esperar pelo backend
+        run: |
+          for i in {1..15}; do
+            if curl -s http://localhost:8000 > /dev/null; then
+              echo "Backend está ativo!";
+              exit 0
+            fi
+            echo "Aguardando backend iniciar... ($i/15)"
+            sleep 2
+          done
+          echo "Backend não iniciou!";
+          exit 1
 
-    env:
-      FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+      - name: Ver logs do backend (em caso de falha)
+        if: failure()
+        run: |
+          docker logs $(docker ps -aqf "name=backend") || true
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Esperar pelo frontend
+        run: |
+          for i in {1..15}; do
+            if curl -s http://localhost:8501 > /dev/null; then
+              echo "Frontend está ativo!";
+              exit 0
+            fi
+            echo "Aguardando frontend iniciar... ($i/15)"
+            sleep 2
+          done
+          echo "Frontend não iniciou!";
+          exit 1
 
-      - name: Wait for services to be ready
-        run: sleep 10
+      - name: Instalar dependências de teste
+        run: pip install requests python-dotenv
 
-      - name: Install dependencies for DAST
-        run: pip install requests
+      - name: Exportar tokens DAST para o ambiente
+        run: |
+          echo "ADMIN_CRED_DAST=${{ secrets.ADMIN_CRED_DAST }}" >> $GITHUB_ENV
+          echo "CLIENT_CRED_DAST=${{ secrets.CLIENT_CRED_DAST }}" >> $GITHUB_ENV
 
       - name: Run DAST Python tests
         run: python security_tests/dast_tests.py
+
+
