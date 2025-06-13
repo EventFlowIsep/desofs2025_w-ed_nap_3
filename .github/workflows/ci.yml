@@ -130,3 +130,8 @@ jobs:
 
       - name: Run DAST Python tests
         run: python security_tests/dast_tests.py
+
+      - name: Ver logs do backend
+        if: failure()
+        run: |
+          docker logs $(docker ps -aqf "name=backend") || true
