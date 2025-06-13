@@ -76,6 +76,9 @@ jobs:
         run: |
           docker compose -f docker-compose.yml up -d --build
 
+      - name: Listar todos os containers (incluindo parados)
+        run: docker ps -a
+
       - name: Verificar serviços ativos (docker ps)
         run: docker ps
 
