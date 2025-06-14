@@ -12,6 +12,8 @@ import firebase_admin
 import time
 import datetime
 import json 
+import uuid
+from app.main import in_memory_cache
 load_dotenv()
 
 
@@ -71,12 +73,16 @@ def test_admin_list_events(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
     res = client.get("/events", headers=headers)
     assert res.status_code == 200, f"Expected 200 but got {res.status_code}"
+    
     response_data = res.json()
-    assert isinstance(response_data, list), "Response data is not a list"
+    assert isinstance(response_data, dict), "Response data is not a dict"
+    assert "events" in response_data, "'events' key not found in response"
+    assert isinstance(response_data["events"], list), "Response 'events' is not a list"
 
 
 def test_admin_cancel_event(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
+
     data = {
         "title": "Evento para Cancelar",
         "date": "2025-09-01",
@@ -84,44 +90,86 @@ def test_admin_cancel_event(admin_token):
         "image_url": "",
         "category": "Categoria Teste"
     }
-    res_create = client.post("/events/create", json=data, headers=headers)
-    assert res_create.status_code == 200
 
-    res_list = client.get("/events", headers=headers)
-    eventos = res_list.json()
-    evento_id = next(e["id"] for e in eventos if e["title"] == "Evento para Cancelar")
+    res_create = client.post("/events/create", json=data, headers=headers)
+    assert res_create.status_code == 200, f"[CREATE ERROR] {res_create.text}"
+
+    evento_id = None
+    max_attempts = 5
+    for attempt in range(max_attempts):
+        res_list = client.get("/events?per_page=100", headers=headers)
+        assert res_list.status_code == 200, f"[LIST ERROR] Tentativa {attempt+1}: {res_list.text}"
+        eventos = res_list.json().get("events", [])
+        for e in eventos:
+            if e["title"] == "Evento para Cancelar":
+                evento_id = e["id"]
+                break
+        if evento_id:
+            break
+        time.sleep(1)
+
+    assert evento_id is not None, "Evento para Cancelar não encontrado após várias tentativas"
 
     res_cancel = client.post(f"/events/{evento_id}/cancel", headers=headers)
-    assert res_cancel.status_code == 200, f"Expected 200 but got {res_cancel.status_code}"
-    assert f"Event {evento_id} cancelled." in res_cancel.json()["message"], "Event cancellation message not found"
+    assert res_cancel.status_code == 200, f"[CANCEL ERROR] {res_cancel.text}"
+    assert f"Event {evento_id} cancelled." in res_cancel.json()["message"], "Mensagem de cancelamento não encontrada"
 
 
 def test_admin_edit_event(admin_token):
+    in_memory_cache.clear()
     headers = {"Authorization": f"Bearer {admin_token}"}
-    data = {
-        "title": "Evento a Editar",
-        "date": "2025-10-01",
-        "description": "testeEliminar",
+
+    # 🔹 Título único e previsível
+    unique_title = f"Evento Editar {uuid.uuid4()}"
+    print(f"[DEBUG] Criar evento com título: {unique_title}")
+
+    # 🔹 Criar evento
+    create_payload = {
+        "title": unique_title,
+        "date": "2025-12-31",
+        "description": "Descrição original",
         "image_url": "",
         "category": "Categoria Teste"
     }
-    res = client.post("/events/create", json=data, headers=headers)
-    assert res.status_code == 200
+    res_create = client.post("/events/create", json=create_payload, headers=headers)
+    assert res_create.status_code == 200, f"[CREATE ERROR] {res_create.text}"
 
-    eventos = client.get("/events", headers=headers).json()
-    evento_id = next((e["id"] for e in eventos if e["title"] == "Evento a Editar"), None)
-    assert evento_id is not None, "Evento não encontrado"
+    # 🔄 Esperar até que o evento apareça (timeout de ~15s)
+    evento_id = None
+    for attempt in range(15):
+        in_memory_cache.clear()
+        res_list = client.get("/events?per_page=100", headers=headers)
+        assert res_list.status_code == 200, f"[LIST ERROR] {res_list.text}"
+        eventos = res_list.json().get("events", [])
 
-    update_data = {
-        "title": "Evento Editado",
-        "description": "Descrição atualizada pelo Admin",
-        "date": "2025-10-01",
+        for e in eventos:
+            if e.get("title") == unique_title:
+                evento_id = e.get("id")
+                print(f"[DEBUG] Evento encontrado após {attempt+1} tentativas. ID: {evento_id}")
+                break
+
+        if evento_id:
+            break
+
+        print(f"[DEBUG] Tentativa {attempt+1}: Evento ainda não disponível.")
+        time.sleep(1.5)
+
+    assert evento_id is not None, f"[EVENTO NÃO ENCONTRADO] Título: {unique_title}"
+
+    # ✏️ Atualizar evento
+    update_payload = {
+        "title": "Evento Editado com Sucesso",
+        "description": "Nova descrição do Admin",
+        "date": "2026-01-01",
         "image_url": "",
         "category": "Categoria Teste"
     }
-    res_update = client.put(f"/events/{evento_id}", json=update_data, headers=headers)
-    assert res_update.status_code == 200, f"Expected 200 but got {res_update.status_code}"
-    assert res_update.json()["msg"] == "Event updated successfully.", "Event update message not found"
+    res_update = client.put(f"/events/{evento_id}", json=update_payload, headers=headers)
+    assert res_update.status_code == 200, f"[UPDATE ERROR] {res_update.text}"
+
+    # ✅ Verificação final
+    data = res_update.json()
+    assert data.get("msg") == "Event updated successfully.", f"[MENSAGEM INVÁLIDA] {data}"
 
 
 
@@ -140,10 +188,21 @@ def test_admin_delete_comment(admin_token):
         "category": category_name
     }
     res_create = client.post("/events/create", json=event_data, headers=headers)
-    assert res_create.status_code == 200
+    assert res_create.status_code == 200, f"[CREATE ERROR] {res_create.text}"
 
-    eventos = client.get("/events", headers=headers).json()
-    evento_id = next(e["id"] for e in eventos if e["title"] == "Evento com Comentário")
+    evento_id = None
+    for attempt in range(5):
+        res_list = client.get("/events?per_page=100", headers=headers)
+        assert res_list.status_code == 200
+        eventos = res_list.json().get("events", [])
+        for e in eventos:
+            if e["title"] == "Evento com Comentário":
+                evento_id = e["id"]
+                break
+        if evento_id:
+            break
+        time.sleep(1)
+    assert evento_id is not None, "Evento não encontrado após várias tentativas"
 
     comment_text = "Comentário a remover"
     comment_payload = {
@@ -152,21 +211,30 @@ def test_admin_delete_comment(admin_token):
         "timestamp": datetime.datetime.utcnow().isoformat()
     }
     res_comment = client.post(f"/events/{evento_id}/comment", json=comment_payload, headers=headers)
-    assert res_comment.status_code == 200
+    assert res_comment.status_code == 200, f"[COMMENT ERROR] {res_comment.text}"
 
-    time.sleep(1)
+    comment_dict = None
+    for attempt in range(5):
+        res_event = client.get("/events?per_page=100", headers=headers)
+        assert res_event.status_code == 200
+        eventos = res_event.json().get("events", [])
+        for e in eventos:
+            if e["id"] == evento_id and "comments" in e:
+                for c in e["comments"]:
+                    if c["text"] == comment_text:
+                        comment_dict = c
+                        break
+        if comment_dict:
+            break
+        time.sleep(1)
 
-    res_event = client.get("/events", headers=headers)
-    assert res_event.status_code == 200
-    evento = next(e for e in res_event.json() if e["id"] == evento_id)
-
-    real_comment = next(c for c in evento["comments"] if c["text"] == comment_text)
+    assert comment_dict is not None, "Comentário não encontrado após várias tentativas"
 
     res_delete = client.request(
         method="DELETE",
         url=f"/events/{evento_id}/comment",
         headers={**headers, "Content-Type": "application/json"},
-        data=json.dumps(real_comment)
+        data=json.dumps(comment_dict)
     )
     assert res_delete.status_code == 200, f"Esperado 200, mas obtido {res_delete.status_code}"
 
@@ -176,12 +244,12 @@ def test_admin_register_user_to_event(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
     res = client.get("/events", headers=headers)
     assert res.status_code == 200, f"Expected 200 but got {res.status_code}"
-    events = res.json()
+    events = res.json()["events"]
     assert events, "No events found"
     event_id = events[0]["id"]
     res = client.post(f"/events/{event_id}/register", headers=headers)
     assert res.status_code == 200, f"Expected 200 but got {res.status_code}"
-    assert "registered" in res.json()["msg"].lower(), "Registration message not found"
+    assert "registered" in res.json()["message"].lower(), "Registration message not found"
    
 
 def test_admin_create_category(admin_token):
@@ -204,5 +272,5 @@ def test_admin_list_categories(admin_token):
     assert isinstance(categories, list), "Response data is not a list of categories"
 
     
-teste =get_token("adminuser@gmail.com", os.getenv("ADMIN_CRED"))
-aa = test_admin_delete_comment(teste)
+# teste =get_token("adminuser@gmail.com", os.getenv("ADMIN_CRED"))
+# aa = test_admin_delete_comment(teste)

@@ -55,7 +55,7 @@ def  test_client_view_events(client_token):
     assert res.status_code == 200, f"Expected status code 200, but got {res.status_code}"
     
     response_data = res.json()
-    assert isinstance(response_data, list), "Response data is not a list"
+    assert isinstance(response_data["events"], list), "Response 'events' is not a list"
 
 def test_client_filter_events(client_token):
     headers = {"Authorization": f"Bearer {client_token}"}
@@ -81,8 +81,8 @@ def test_client_comment_event(client_token):
     headers = {"Authorization": f"Bearer {client_token}"}
 
     eventos = client.get("/events", headers=headers).json()
-    assert eventos, "Precisas de pelo menos um evento criado"
-    evento_id = eventos[0]["id"]
+    assert eventos.get("events"), "Precisas de pelo menos um evento criado"
+    evento_id = eventos["events"][0]["id"]
 
     comment_data = {
         "text": "Comentário de teste do cliente",
@@ -99,11 +99,14 @@ def test_client_register_user_to_event(client_token):
     res = client.get("/events", headers=headers)
     assert res.status_code == 200, f"Expected status code 200, but got {res.status_code}"
     events = res.json()
-    assert events, "No events found"
-    event_id = events[0]["id"]
+    assert events.get("events"), "No events found"
+    event_id = events["events"][0]["id"]
     res = client.post(f"/events/{event_id}/register", headers=headers)
     assert res.status_code == 200, f"Expected status code 200, but got {res.status_code}"
-    assert "registered" in res.json().get("msg", "").lower(), "'registered' message not found in response"
+
+    response_msg = res.json().get("message", "").lower()
+    assert "registered" in response_msg or "already registered" in response_msg, \
+        f"Unexpected registration message: {response_msg}"
 
 
 import datetime
@@ -120,25 +123,25 @@ def test_event_manager_cannot_delete_comment(client_token):
     }
 
     res = client.get("/events", headers=headers)
-    assert res.status_code == 200, f"Expected status code 200, but got {res.status_code}"
+    assert res.status_code == 200, f"Expected status code 200, got {res.status_code}"
     events = res.json()
-    assert events, "No events available"
-    event_id = events[0]["id"]
+    assert "events" in events and events["events"], "No events found"
+
+    event_id = events["events"][0]["id"]
 
     comment = {
-        "author": "testuser@gmail.com",
-        "text": "This is a comment",
-        "timestamp": datetime.datetime.utcnow().isoformat()
+        "author": "Cliente Teste",
+        "text": "Comentário de cliente para testar DELETE",
+        "timestamp": datetime.datetime.utcnow().replace(microsecond=0).isoformat()
     }
 
-    post_res = client.post(f"/events/{event_id}/comment", headers=headers, json=comment, timeout=10)
-    assert post_res.status_code == 200, f"Expected status code 200, but got {post_res.status_code}"
+    post_res = client.post(f"/events/{event_id}/comment", headers=headers, json=comment)
+    assert post_res.status_code == 200, f"Expected 200 on comment post, got {post_res.status_code}"
 
     delete_res = client.request(
-        method="DELETE",
-        url=f"/events/{event_id}/comment",
-        headers=headers,
-        data=json.dumps(comment)
-    )
-
-    assert delete_res.status_code == 403, f"Expected status code 403, but got {delete_res.status_code}"
+    method="DELETE",
+    url=f"/events/{event_id}/comment",
+    headers=headers,
+    data=json.dumps(comment)
+)
+    assert delete_res.status_code == 403, f"Expected 403, got {delete_res.status_code}"
