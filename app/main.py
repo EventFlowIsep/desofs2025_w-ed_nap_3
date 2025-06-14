@@ -356,7 +356,7 @@ async def post_comment(event_id: str, req: Request, user=Depends(verify_token)):
     try:
         body = await req.json()
         sanitize_input(body)
-    except:
+    except Exception as e:
         user_email = user.get("email", "anonymous") if user else "anonymous"
         logger.error(f"Deserialization failure from user {user_email} on {req.method} {req.url}: {e}")
         raise HTTPException(status_code=400, detail="Invalid JSON")
