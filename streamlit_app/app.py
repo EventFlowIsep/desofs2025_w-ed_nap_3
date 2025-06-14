@@ -296,3 +296,24 @@ elif st.session_state.page == "register":
     if st.button("Login"):
         st.session_state.page = "auth"
         st.rerun()
+
+
+# # -------------------------------
+# #           LOGS
+# # -------------------------------
+
+#         # Sidebar
+# st.sidebar.title("📚 Navegação")
+# pagina = st.sidebar.radio("Ir para:", [
+#     "Dashboard", 
+#     "Administração",
+#     "Ver Logs"
+# ])
+
+# # Lógica de navegação
+# if pagina == "Dashboard":
+#     st.write("# Bem-vindo à EventFlow")
+# elif pagina == "Administração":
+#     admin.admin_dashboard()
+# elif pagina == "Ver Logs":
+#     logs.view_logs()
