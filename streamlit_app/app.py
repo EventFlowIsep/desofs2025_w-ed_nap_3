@@ -120,7 +120,7 @@ def firebase_login(email, password):
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
     return requests.post(url, json={"email": email, "password": password, "returnSecureToken": True}, timeout=DEFAULT_TIMEOUT)
 
-db = firestore.Client.from_service_account_json("app/firebase_key.json")
+db = firestore.Client.from_service_account_json("../app/firebase_key.json")
 
 # List all Events categories
 def list_categories():
