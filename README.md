@@ -194,6 +194,41 @@ pytest tests/
 ```
 
 ---
+## 🧠 Business Logic
+
+### 1. User Management and Authentication
+- Integration with Firebase for secure user authentication.
+- Permission differentiation logic: admin, client, and guest.
+- Implementation of rules to ensure that only authenticated users can access protected areas.
+- Validation of login/logout and maintenance of active sessions.
+
+### 2. Event Creation and Management
+- Rules for event creation, editing, and deletion restricted to users with appropriate permissions (admin).
+- Guarantee of event uniqueness (e.g., preventing duplicate titles/dates).
+- Logic for event cancellation (soft delete): cancelled events remain listed but are marked as "cancelled".
+
+### 3. Event Registration and Participation
+- Implementation of the rule that only authenticated users can register for events.
+- Validation to prevent duplicate registrations for the same event by the same user.
+- Consistent update of the participant list upon registration/unregistration.
+
+### 4. Comment System
+- Only registered users can add comments to events.
+- Logic for comment deletion (admin and author), ensuring deleted comments are no longer displayed.
+
+### 5. Data Consistency
+- All operations of event creation/editing/cancellation, registration/unregistration, and comments are reflected both on the frontend (Streamlit) and the backend (FastAPI/Firebase).
+- Use of atomic transactions where applicable to guarantee integrity.
+
+### 6. Specific Business Rules
+- Events cannot be edited after their scheduled date.
+- It is not possible to cancel registrations after the event date.
+- Only administrators can create or delete event categories.
+
+### 7. General Validations
+- All user input is validated on the backend (FastAPI) before any state change.
+- Errors and rule violations are clearly communicated to the user.
+
 
 ## 📌 Final Notes
 
@@ -204,3 +239,4 @@ pytest tests/
 
 ---
 
+test
