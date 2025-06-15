@@ -334,9 +334,15 @@ async def create_event(req: Request, user=Depends(verify_token)):
         "comments": [],
         "registrations": []
     }
-    db.collection("events").add(event)
-    logger.info(f"User {user['email']} CREATED event '{title}' in category '{category}'")
-    return {"message": "Event created successfully."}
+    doc_ref = db.collection("events").add(event)
+    event_id = doc_ref[1].id  # O segundo elemento do tuple é o documento
+
+    logger.info(f"User {user['email']} CREATED event '{title}' in category '{category}' (ID: {event_id})")
+
+    return {
+    "message": "Event created successfully.",
+    "event_id": event_id  # 🔥 Novo campo retornado
+    }
 
 @app.post("/events/{event_id}/cancel")
 def cancel_event(req: Request, event_id: str, user=Depends(verify_token)):
@@ -356,7 +362,7 @@ async def post_comment(event_id: str, req: Request, user=Depends(verify_token)):
     try:
         body = await req.json()
         sanitize_input(body)
-    except:
+    except Exception as e:
         user_email = user.get("email", "anonymous") if user else "anonymous"
         logger.error(f"Deserialization failure from user {user_email} on {req.method} {req.url}: {e}")
         raise HTTPException(status_code=400, detail="Invalid JSON")
@@ -402,11 +408,11 @@ def update_event(req: Request, event_id: str, update: EventUpdate, user=Depends(
     if not event_doc.exists:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    sanitize_input(update.dict())
     update_data = {k: v for k, v in update.dict().items() if v is not None}
+    sanitize_input(update.dict())
     if "date" in update_data:
         try:
-            datetime.datetime.strptime(update_data["date"], "%Y-%m-%d")
+            datetime.strptime(update_data["date"], "%Y-%m-%d")
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
 
@@ -416,8 +422,8 @@ def update_event(req: Request, event_id: str, update: EventUpdate, user=Depends(
 @app.get("/events/filter")
 def filter_events_by_date(start: str = Query(...), end: str = Query(...)):
     try:
-        start_date = datetime.datetime.strptime(start, "%Y-%m-%d")
-        end_date = datetime.datetime.strptime(end, "%Y-%m-%d")
+        start_date = datetime.strptime(start, "%Y-%m-%d")
+        end_date = datetime.strptime(end, "%Y-%m-%d")
     except ValueError:
         raise HTTPException(status_code=400, detail="Dates must be in YYYY-MM-DD format")
 
@@ -429,7 +435,7 @@ def filter_events_by_date(start: str = Query(...), end: str = Query(...)):
         if not event_date_str:
             continue
         try:
-            event_date = datetime.datetime.strptime(event_date_str, "%Y-%m-%d")
+            event_date = datetime.strptime(event_date_str, "%Y-%m-%d")
             if start_date <= event_date <= end_date:
                 data["id"] = doc.id
                 filtered.append(data)
@@ -551,8 +557,9 @@ def delete_comment(req: Request,event_id: str, comment: CommentToDelete, user=De
             logger.warning(f"Access denied for user {user['email']} on {req.method} {req.url} - Forbidden")
             raise HTTPException(status_code=403, detail="Permission denied.")
 
-    sanitize_input(comment_dict)
     comment_dict = comment.dict()
+    sanitize_input(comment_dict)
+    
     existing_comments = event_data.get("comments", [])
     event_ref = db.collection("events").document(event_id)
     event_doc = event_ref.get()
