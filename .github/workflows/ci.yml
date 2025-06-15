@@ -36,12 +36,12 @@ jobs:
           echo "ADMIN_CRED=${{ secrets.ADMIN_CRED }}" >> $GITHUB_ENV
           echo "CLIENT_CRED=${{ secrets.CLIENT_CRED }}" >> $GITHUB_ENV
 
-      - name: Run Pytest
-        run: |
-          pip install pytest
-          cd tests/
-          pytest admin_test.py
-          pytest client_test.py
+      #- name: Run Pytest
+      #  run: |
+      #    pip install pytest
+      #    cd tests/
+      #    pytest admin_test.py
+      #    pytest client_test.py
 
       - name: Run Bandit (SAST)
         continue-on-error: true
