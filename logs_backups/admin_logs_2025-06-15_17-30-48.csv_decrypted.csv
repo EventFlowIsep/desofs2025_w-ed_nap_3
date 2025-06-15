@@ -1127,3 +1127,18 @@ id,timestamp,user_email,method,path,status_code,message,ip,user_agent
 1126,2025-06-15T15:52:47.292522,adminuser@gmail.com,POST,http://testserver/events/0EV6KCayRW5N9tKaUKx9/register,200,,testclient,testclient
 1127,2025-06-15T15:52:47.478397,adminuser@gmail.com,POST,http://testserver/categories,200,,testclient,testclient
 1128,2025-06-15T15:52:48.146419,adminuser@gmail.com,GET,http://testserver/categories,200,,testclient,testclient
+1129,2025-06-15T16:11:16.153690,anonymous,GET,"http://localhost:8000/events/0KeuQ1fNHqwzVVX1bsZW/comment,200,,127.0.0.1,python-requests/2.32.3",404,,127.0.0.1,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+1130,2025-06-15T16:11:16.192384,anonymous,GET,http://localhost:8000/favicon.ico,404,,127.0.0.1,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+1131,2025-06-15T16:24:21.121024,adminuser@gmail.com,GET,http://localhost:8000/verify-token,200,,127.0.0.1,python-requests/2.32.3
+1132,2025-06-15T16:25:02.635487,adminuser@gmail.com,GET,http://localhost:8000/verify-token,200,,127.0.0.1,python-requests/2.32.3
+1133,2025-06-15T16:25:04.750205,adminuser@gmail.com,GET,http://localhost:8000/verify-token,200,,127.0.0.1,python-requests/2.32.3
+1134,2025-06-15T16:25:07.819847,adminuser@gmail.com,GET,http://localhost:8000/events?page=1&per_page=10,200,,127.0.0.1,python-requests/2.32.3
+1135,2025-06-15T16:25:10.279806,adminuser@gmail.com,GET,http://localhost:8000/categories,200,,127.0.0.1,python-requests/2.32.3
+1136,2025-06-15T16:26:30.325661,adminuser@gmail.com,GET,http://localhost:8000/verify-token,200,,127.0.0.1,python-requests/2.32.3
+1137,2025-06-15T16:26:32.400690,adminuser@gmail.com,GET,http://localhost:8000/events?page=1&per_page=10,200,,127.0.0.1,python-requests/2.32.3
+1138,2025-06-15T16:26:35.405112,adminuser@gmail.com,GET,http://localhost:8000/categories,200,,127.0.0.1,python-requests/2.32.3
+1139,2025-06-15T16:26:52.811367,adminuser@gmail.com,GET,http://localhost:8000/verify-token,200,,127.0.0.1,python-requests/2.32.3
+1140,2025-06-15T16:26:54.900123,adminuser@gmail.com,GET,http://localhost:8000/events?page=1&per_page=10,200,,127.0.0.1,python-requests/2.32.3
+1141,2025-06-15T16:26:57.848798,adminuser@gmail.com,GET,http://localhost:8000/categories,200,,127.0.0.1,python-requests/2.32.3
+1142,2025-06-15T16:30:16.405863,anonymous,GET,"http://localhost:8000/favicon.ico,404,,127.0.0.1",404,,127.0.0.1,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+1143,2025-06-15T16:30:16.514188,anonymous,GET,http://localhost:8000/favicon.ico,404,,127.0.0.1,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"

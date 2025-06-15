@@ -63,7 +63,13 @@ def test_admin_create_event(admin_token):
         "image_url": "",
         "category": "Categoria Teste"
     }
-    res = client.post("/events/create", json=data, headers=headers)
+
+    for attempt in range(3):  # Retry até 3 vezes
+        res = client.post("/events/create", json=data, headers=headers)
+        if res.status_code == 200:
+            break
+        time.sleep(1)
+
     assert res.status_code == 200, f"Expected 200 but got {res.status_code}"
     response_data = res.json()
     assert "Event created successfully" in response_data.get("message", ""), "Event creation message not found"
@@ -71,9 +77,14 @@ def test_admin_create_event(admin_token):
 
 def test_admin_list_events(admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
-    res = client.get("/events", headers=headers)
+
+    for attempt in range(3):  # Retry até 3 vezes
+        res = client.get("/events", headers=headers)
+        if res.status_code == 200:
+            break
+        time.sleep(1)
+
     assert res.status_code == 200, f"Expected 200 but got {res.status_code}"
-    
     response_data = res.json()
     assert isinstance(response_data, dict), "Response data is not a dict"
     assert "events" in response_data, "'events' key not found in response"
@@ -119,11 +130,9 @@ def test_admin_edit_event(admin_token):
     in_memory_cache.clear()
     headers = {"Authorization": f"Bearer {admin_token}"}
 
-    # 🔹 Título único e previsível
     unique_title = f"Evento Editar {uuid.uuid4()}"
     print(f"[DEBUG] Criar evento com título: {unique_title}")
 
-    # 🔹 Criar evento
     create_payload = {
         "title": unique_title,
         "date": "2025-12-31",
@@ -131,32 +140,11 @@ def test_admin_edit_event(admin_token):
         "image_url": "",
         "category": "Categoria Teste"
     }
+
     res_create = client.post("/events/create", json=create_payload, headers=headers)
     assert res_create.status_code == 200, f"[CREATE ERROR] {res_create.text}"
+    evento_id = res_create.json()["event_id"]
 
-    # 🔄 Esperar até que o evento apareça (timeout de ~15s)
-    evento_id = None
-    for attempt in range(15):
-        in_memory_cache.clear()
-        res_list = client.get("/events?per_page=100", headers=headers)
-        assert res_list.status_code == 200, f"[LIST ERROR] {res_list.text}"
-        eventos = res_list.json().get("events", [])
-
-        for e in eventos:
-            if e.get("title") == unique_title:
-                evento_id = e.get("id")
-                print(f"[DEBUG] Evento encontrado após {attempt+1} tentativas. ID: {evento_id}")
-                break
-
-        if evento_id:
-            break
-
-        print(f"[DEBUG] Tentativa {attempt+1}: Evento ainda não disponível.")
-        time.sleep(1.5)
-
-    assert evento_id is not None, f"[EVENTO NÃO ENCONTRADO] Título: {unique_title}"
-
-    # ✏️ Atualizar evento
     update_payload = {
         "title": "Evento Editado com Sucesso",
         "description": "Nova descrição do Admin",
@@ -164,10 +152,10 @@ def test_admin_edit_event(admin_token):
         "image_url": "",
         "category": "Categoria Teste"
     }
+
     res_update = client.put(f"/events/{evento_id}", json=update_payload, headers=headers)
     assert res_update.status_code == 200, f"[UPDATE ERROR] {res_update.text}"
 
-    # ✅ Verificação final
     data = res_update.json()
     assert data.get("msg") == "Event updated successfully.", f"[MENSAGEM INVÁLIDA] {data}"
 

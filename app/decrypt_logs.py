@@ -3,6 +3,19 @@ from cryptography.fernet import Fernet
 from base64 import urlsafe_b64encode
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
+import logging
+
+
+
+# ----------------------------
+# LOGGING PARA FICHEIRO
+# ----------------------------
+logging.basicConfig(
+    filename='logs_backups/log_decrypt.log',
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s'
+)
+
 
 # -------------------------------
 # Definições seguras (consistentes com o exportador)

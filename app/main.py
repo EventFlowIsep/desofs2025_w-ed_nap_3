@@ -334,9 +334,15 @@ async def create_event(req: Request, user=Depends(verify_token)):
         "comments": [],
         "registrations": []
     }
-    db.collection("events").add(event)
-    logger.info(f"User {user['email']} CREATED event '{title}' in category '{category}'")
-    return {"message": "Event created successfully."}
+    doc_ref = db.collection("events").add(event)
+    event_id = doc_ref[1].id  # O segundo elemento do tuple é o documento
+
+    logger.info(f"User {user['email']} CREATED event '{title}' in category '{category}' (ID: {event_id})")
+
+    return {
+    "message": "Event created successfully.",
+    "event_id": event_id  # 🔥 Novo campo retornado
+    }
 
 @app.post("/events/{event_id}/cancel")
 def cancel_event(req: Request, event_id: str, user=Depends(verify_token)):

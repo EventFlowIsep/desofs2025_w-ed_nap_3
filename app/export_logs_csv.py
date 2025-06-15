@@ -6,6 +6,18 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from base64 import urlsafe_b64encode
 import os
+import logging
+
+
+# ----------------------------
+# LOGGING PARA FICHEIRO
+# ----------------------------
+logging.basicConfig(
+    filename='logs_backups/log_export.log',
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s'
+)
+
 
 # ----------------------------
 # PASSWORD, SALT e ITERAÇÕES
