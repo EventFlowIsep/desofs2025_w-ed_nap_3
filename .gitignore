@@ -1,3 +1,7 @@
+# Keys
 app/firebase_key.json
-app/__pycache__
 .env
+
+# Ficheiros compilados
+*.pyc
+__pycache__/
