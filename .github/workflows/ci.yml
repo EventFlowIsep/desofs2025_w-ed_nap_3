@@ -130,6 +130,11 @@ jobs:
           echo "CLIENT_CRED_DAST=${{ secrets.CLIENT_CRED_DAST }}" >> $GITHUB_ENV
 
       - name: Run DAST Python tests
-        run: python security_tests/dast_tests.py
+        run: python security_tests/dast_tests.py > dast-report.txt
 
+      - name: Upload DAST report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-report
+          path: dast-report.txt
 
