@@ -47,14 +47,25 @@ jobs:
         continue-on-error: true
         run: |
           pip install bandit
-          bandit -r app/
-          bandit -r streamlit_app/
+          bandit -r app/ -f xml -o bandit-app.xml || true
+          bandit -r streamlit_app/ -f xml -o bandit-streamlit.xml || true
 
       - name: Run pip-audit (SCA)
         continue-on-error: true
         run: |
           pip install pip-audit
-          pip-audit
+          pip-audit -o pip-audit-report.json || true
+
+
+      - name: Upload CI Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-seguranca
+          path: |
+            bandit-app.xml
+            bandit-streamlit.xml
+            pip-audit-report.json
+            # pytest-report.xml
 
   deploy-staging:
     name: Deploy to Docker Compose and DAST Tests (Staging)
@@ -119,6 +130,11 @@ jobs:
           echo "CLIENT_CRED_DAST=${{ secrets.CLIENT_CRED_DAST }}" >> $GITHUB_ENV
 
       - name: Run DAST Python tests
-        run: python security_tests/dast_tests.py
+        run: python security_tests/dast_tests.py | tee dast-report.txt
 
+      - name: Upload DAST report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-report
+          path: dast-report.txt
 
