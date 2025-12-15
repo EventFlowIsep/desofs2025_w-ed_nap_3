@@ -10,7 +10,7 @@ cloudinary
 bandit>=1.7.7
 pip-audit
 python-dotenv
-tornado>=6.5
+tornado>=6.5.3
 #snyk
 dotenv
 pytest
@@ -19,3 +19,4 @@ firebase-admin==6.4.0
 jinja2
 zxcvbn
 streamlit-autorefresh
+fonttools>=4.61.0 # not directly required, pinned by Snyk to avoid a vulnerability
